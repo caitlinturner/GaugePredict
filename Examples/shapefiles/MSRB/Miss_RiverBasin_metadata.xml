@@ -1,0 +1,119 @@
+﻿<metadata>
+  <idinfo>
+    <citation>
+      <citeinfo>
+        <title>Mississippi River Basin</title>
+        <geoform>vector digital data</geoform>
+      </citeinfo>
+    </citation>
+    <descript>
+      <abstract>Boundary of Mississippi River Basin derived by dissolving WBD HU-4, July 2012 version.</abstract>
+      <purpose>This dataset is being used as part of the Conservation Blueprint 1.0 being developed for the Multi-LCC Mississippi River Basin/Gulf Hypoxia Initiative.  The purpose of the Conservation Blueprint is to map, evaluate, and select the most strategic and cost effective places to implement integrated strategies that protect and enhance wildlife habitat while complementing ongoing efforts that reduce nutrient loads to the Gulf of Mexico hypoxic zone and benefit agricultural production through ecosystem services.
+
+The Mississippi River Basin/Gulf Hypoxia Initiative, spearheaded by seven Landscape Conservation Cooperatives, is undertaking a strategic and transparent process to create an integrated framework that supports planning, design, configuration, and delivery of wildlife conservation practices within the watershed.  This framework consists of multiple quantitative objectives representing three interests (i.e., wildlife, water quality, agriculture), a tiered set of conservation strategies to achieve those objectives within five production agriculture systems (i.e., corn &amp; soybean; grazing lands; floodplain forest; rice; cotton), and a modeling approach to determine where to best implement those actions within four key ecological systems of the Mississippi River Basin (i.e., headwater row crop fields; upland prairies; mid-sized riparian streams; mainstem floodplains).
+
+The Initiative plans to use this framework to address collaborative needs that will enhance organizational capacity, avoid duplication of effort, streamline prioritization, and align the work of agencies and organizations across multiple scales.  This effort is intended to be complementary to related on-going efforts, like the Gulf of Mexico Hypoxia Task Force, Mississippi River Basin Initiative, and state nutrient reduction initiatives, but with an added emphasis on the ecological and social values of wildlife habitat.</purpose>
+    </descript>
+    <spdom>
+      <bounding>
+        <westbc>-114.914572</westbc>
+        <eastbc>-75.781879</eastbc>
+        <northbc>50.381277</northbc>
+        <southbc>27.980368</southbc>
+      </bounding>
+    </spdom>
+    <accconst>None</accconst>
+    <useconst>None</useconst>
+    <datacred>USGS Watershed Boundary Dataset, 2012. The Conservation Fund, 2014.</datacred>
+    <native>Microsoft Windows 7 Version 6.1 (Build 7601) Service Pack 1; Esri ArcGIS 10.3.1.4959</native>
+  </idinfo>
+  <spdoinfo>
+    <direct>Vector</direct>
+    <ptvctinf>
+      <sdtsterm>
+        <sdtstype>GT-polygon composed of chains</sdtstype>
+        <ptvctcnt>1</ptvctcnt>
+      </sdtsterm>
+    </ptvctinf>
+  </spdoinfo>
+  <spref>
+    <horizsys>
+      <planar>
+        <mapproj>
+          <mapprojn>USA Contiguous Albers Equal Area Conic USGS version</mapprojn>
+          <albers>
+            <stdparll>29.5</stdparll>
+            <stdparll>45.5</stdparll>
+            <longcm>-96.0</longcm>
+            <latprjo>23.0</latprjo>
+            <feast>0.0</feast>
+            <fnorth>0.0</fnorth>
+          </albers>
+        </mapproj>
+        <planci>
+          <plance>coordinate pair</plance>
+          <coordrep>
+            <absres>0.0000000037527980722984474</absres>
+            <ordres>0.0000000037527980722984474</ordres>
+          </coordrep>
+          <plandu>meter</plandu>
+        </planci>
+      </planar>
+      <geodetic>
+        <horizdn>D North American 1983</horizdn>
+        <ellips>GRS 1980</ellips>
+        <semiaxis>6378137.0</semiaxis>
+        <denflat>298.257222101</denflat>
+      </geodetic>
+    </horizsys>
+  </spref>
+  <eainfo>
+    <detailed>
+      <enttyp>
+        <enttypl>Miss_RiverBasin</enttypl>
+      </enttyp>
+      <attr>
+        <attrlabl>FID</attrlabl>
+        <attrdef>Internal feature number.</attrdef>
+        <attrdefs>Esri</attrdefs>
+        <attrdomv>
+          <udom>Sequential unique whole numbers that are automatically generated.</udom>
+        </attrdomv>
+      </attr>
+      <attr>
+        <attrlabl>Shape</attrlabl>
+        <attrdef>Feature geometry.</attrdef>
+        <attrdefs>ESRI</attrdefs>
+        <attrdomv>
+          <udom>Coordinates defining the features.</udom>
+        </attrdomv>
+      </attr>
+      <attr>
+        <attrlabl>MRB</attrlabl>
+      </attr>
+      <attr>
+        <attrlabl>area_mi2</attrlabl>
+      </attr>
+      <attr>
+        <attrlabl>Shape_Leng</attrlabl>
+      </attr>
+      <attr>
+        <attrlabl>Shape_Area</attrlabl>
+        <attrdef>Area of feature in internal units squared.</attrdef>
+        <attrdefs>ESRI</attrdefs>
+        <attrdomv>
+          <udom>Positive real numbers that are automatically generated.</udom>
+        </attrdomv>
+      </attr>
+    </detailed>
+  </eainfo>
+  <metainfo>
+    <metd>20150820</metd>
+    <metstdn>FGDC Content Standard for Digital Geospatial Metadata</metstdn>
+    <metstdv>FGDC-STD-001-1998</metstdv>
+    <mettc>local time</mettc>
+    <metuc>The Conservation Fund uses data that it believes to be accurate, but does not guarantee the accuracy of that data or maps based on it.  Users are responsible for confirming the accuracy of all data and maps.  The Conservation Fund disclaims all liability, in contract or tort, for any costs or damages relating to any errors.
+
+If The Conservation Fund provides incorrect data, its sole responsibility shall be to revise any maps or other materials using corrected data provided by the user, provided that the user notifies The Conservation Fund of the error and provides the corrected data within 30 days from the date of publication.</metuc>
+  </metainfo>
+</metadata>
