@@ -14,7 +14,6 @@ from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import StandardScaler
-import cmocean as cm
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import matplotlib.dates as mdates
@@ -23,34 +22,9 @@ from scipy.stats import linregress
 import warnings
 warnings.filterwarnings("ignore")
 import time as tm
-starttm = tm.time()
-
-#  Configuration 
-data_dir = Path("cached_data")  # discharge
-data_dir_precipitation = Path("cached_data_precipitation")  # precipitation
-json_path = data_dir / "site_dict.json"
-json_path_precipitation = data_dir_precipitation / "site_dict_precipitation.json"
-target_site = '07374000'  # Baton Rouge, LA (2005 - present)
-#target_site = '07289000'  # Vicksburg, MS (2008 - present)
-# target_site = '07374525'  # Belle Chasse, LA (2009 - present)
-start_date, end_date = "2005-01-01", "2025-01-01"
-full_index = pd.date_range(start=start_date, end=end_date)
-sequence_length = 90  # Change sequence length for days out?
-epochs_intial = 150
-n_runs = 1
-forcast_horizons = [15] #[5, 10, 15]
-data_dir.mkdir(exist_ok=True)
-
-#  Load JSON Files 
-with open(json_path) as f:
-    raw_data_discharge = json.load(f)
-
-with open(json_path_precipitation) as f:
-   raw_data_precipitation = json.load(f)
 
 def remove_nans(ts):
     return ts.replace([-999999, -99999, -9999], np.nan)
-
 
 def delocalize_timeseries(ts):
     ts.index = pd.to_datetime(ts.index)
@@ -58,7 +32,7 @@ def delocalize_timeseries(ts):
         ts.index = ts.index.tz_localize("UTC")
     else:
         ts.index = ts.index.tz_convert("UTC")
-   return ts
+    return ts
 
 def generate_full_index(start, end, localize=True, tz="UTC"):
     index = pd.date_range(start=start, end=end)
@@ -79,25 +53,7 @@ def filter_and_fill_ts(ts, na_filter=0.25):
     ts = ts.interpolate(limit_direction="both").ffill().bfill()
     return ts
 
-#  Process Discharge and Precipitation
-site_dict_discharge = {}
-site_dict_precip = {}
-
-for huc_sites in raw_data_discharge.values():
-    for site_no, info in huc_sites.items():
-        if 'discharge' in info:
-            s = process_discharge(info['discharge'], full_index)
-            if s.isna().mean() <= 0.25: #remove later
-                site_dict_discharge[site_no] = s.interpolate(limit_direction="both").ffill().bfill()
-
-for huc_sites in raw_data_precipitation.values():
-    for site_no, info in huc_sites.items():
-        if 'precipitation' in info:
-            s = process_precipitation(info['precipitation'], full_index)
-            if s.isna().mean() <= 0.25: #remove later
-               site_dict_precip[site_no] = s.interpolate(limit_direction="both").ffill().bfill()
-
-def load_target(target_site):
+def load_target(target_site, full_index):
     df = nwis.get_dv(sites=target_site, parameterCd="00060", start=start_date, end=end_date)[0]
     ts = df['00060_Mean']
     ts.index = pd.to_datetime(ts.index)
@@ -108,44 +64,9 @@ def load_target(target_site):
     else:
         ts.index = ts.index.tz_convert("UTC")
 
-    return ts.reindex(full_index.tz_localize("UTC")).interpolate(limit_direction="both").ffill().bfill()
+    return ts.reindex(full_index).interpolate(limit_direction="both").ffill().bfill()
 
-
-target_discharge = load_target()
-
-#  Construct Feature Stack 
-X_data = []
-
-# Discharge sites
-for s in site_dict_discharge.values():
-    X_data.append(s.reindex_like(target_discharge))
-
-# Target discharge features
-X_data.append(target_discharge)
-X_data.append(target_discharge.diff().bfill())
-
-# Precipitation sites
-for s in site_dict_precip.values():
-    X_data.append(s.reindex_like(target_discharge))
-
-# Final stack
-X_raw = np.stack([s.values for s in X_data], axis=0)
-y = target_discharge.values.copy()
-
-epochs = epochs_intial  # reassigned so I can rerun code without importing data again
-
-# Dataset Class 
-class DischargeDataset(Dataset):
-    def __init__(self, start, end, data_files, target_site, tz="UTC", na_filter=0.25):
-        self.start = start
-        self.end = end
-        self.full_index = generate_full_index(start, end, localize=True, tz=tz)
-        self.raw_timeseries = self.load_data(data_files)
-        self.target_data = load_target(target_site)
-    def __len__(self): return self.X.shape[0]
-    def __getitem__(self, idx): return self.X[idx], self.y[idx]
-
-    def load_data(self, data_files, conversion_factor=1.0):
+def load_data(data_files, full_index, conversion_factor=1.0):
         data = []
         for file in data_files:
             if type(file) is str:
@@ -165,19 +86,69 @@ class DischargeDataset(Dataset):
                             ts = pd.Series(info[data_key])
                             ts = remove_nans(ts)
                             ts = delocalize_timeseries(ts)
-                            ts = ts.sort_index().reindex(self.full_index)
+                            ts = ts.sort_index().reindex(full_index)
                             ts = ts* conversion_factor  # Apply conversion factor
                             data.append(ts)
-        return np.array(data)
+        return data
+        #return np.array(data)
 
-    def process_data(self):
-        processed_data = []
-        for data in self.raw_timeseries:
-            if data.isna().mean() <= self.na_filter:
-                processed_data.append(data.interpolate(limit_direction="both").ffill().bfill().reindex_like(self.target_data))
-        processed_data.append(self.target_data)
-        processed_data.append(self.target_data.diff().bfill())  # Add difference of target discharge
-        self.X = np.stack([s.values for s in processed_data], axis=0)
+def process_data(raw_timeseries, target_data, na_filter=0.25):
+    processed_data = []
+    for data in raw_timeseries:
+        if data.isna().mean() <= na_filter:
+            processed_data.append(data.interpolate(limit_direction="both").ffill().bfill().reindex_like(target_data))
+            processed_data.append(target_data)
+            processed_data.append(target_data.diff().bfill())  # Add difference of target discharge
+    return np.stack([s.values for s in processed_data], axis=0)
+
+def generate_sequences(sequence_length, forcast_horizon, X_raw, y):
+    X_seq, y_seq = [], []
+    for i in range(len(y) - sequence_length - forcast_horizon + 1):
+        X_seq.append(X_raw[:, i:i + sequence_length].T)
+        y_seq.append(y[i + sequence_length + forcast_horizon - 1])  # Adjusted for forecast horizon
+    X_seq = np.array(X_seq, dtype=np.float32)
+    y_seq = np.array(y_seq, dtype=np.float32).reshape(-1, 1)
+    return X_seq, y_seq
+
+def generate_train_test_masks(full_index, sequence_length, y_seq, forecast_horizon, cutoff_date):
+    target_dates = full_index[sequence_length : len(full_index) - forecast_horizon + 1]
+    target_dates = np.array(target_dates[:len(y_seq)])
+    cutoff_date = pd.Timestamp(np.datetime64(cutoff_date), tz="UTC")
+    train_mask = target_dates < cutoff_date
+    test_mask = target_dates >= cutoff_date
+    return train_mask, test_mask
+
+def get_train_and_test_sets(data_files, target_site, start_date, end_date, conversion_factor, tz, sequence_length, forcast_horizon, cutoff_date, na_filter=0.25):
+    full_index = generate_full_index(start_date, end_date, localize=True, tz=tz)
+    raw_data = load_data(data_files, full_index, conversion_factor)
+    target_discharge = load_target(target_site, full_index)
+    processed_data = process_data(raw_data, target_discharge, na_filter=na_filter)
+    y =target_discharge.values.copy()
+    X_seq, y_seq = generate_sequences(sequence_length, forcast_horizon, processed_data, y)
+    train_mask, test_mask = generate_train_test_masks(full_index, sequence_length, y_seq, forcast_horizon, cutoff_date)
+    X_train, y_train = X_seq[train_mask], y_seq[train_mask]
+    X_test, y_test = X_seq[test_mask], y_seq[test_mask]
+    # Normalize X based on training data
+    mean = X_train.mean(axis=(0, 1), keepdims=True)
+    std = X_train.std(axis=(0, 1), keepdims=True) + 1e-8
+    X_train = (X_train - mean) / std
+    X_test = (X_test - mean) / std
+    # Normalize Y
+    scaler_y = StandardScaler()
+    y_train_scaled = scaler_y.fit_transform(y_train)
+    y_test_scaled = scaler_y.transform(y_test)
+
+    train_dataset = DischargeDataset(X_train, y_train_scaled)
+    test_dataset = DischargeDataset(X_test, y_test_scaled)
+    return train_dataset, test_dataset
+
+# Dataset Class 
+class DischargeDataset(Dataset):
+    def __init__(self, X, y):
+        self.X = torch.tensor(X, dtype=torch.float32)
+        self.y = torch.tensor(y, dtype=torch.float32)
+    def __len__(self): return self.X.shape[0]
+    def __getitem__(self, idx): return self.X[idx], self.y[idx]
 
 
 
@@ -227,131 +198,126 @@ class CNN_LSTM(nn.Module):
 
 
 # Training 
+
+data_files = [{'path': '../../data/cached_data/site_dict.json',
+               'conversion_factor': 0.0283168466,
+               'data_key': 'discharge'},
+              {'path': '../../data/cached_data_precipitation/site_dict_precipitation.json',
+               'conversion_factor': 2.54,
+               'data_key': 'precipitation'}]
+target_site = '07374000'
+start_date = "2005-01-01"
+end_date ="2025-01-01"
+tz= "UTC"
+sequence_length = 90
+forcast_horizon = 15
+cutoff_date = np.datetime64('2020-01-01')
+na_filter=0.25
+conversion_factor = 1
+train_dataset, test_dataset = get_train_and_test_sets(data_files, target_site, start_date, end_date, conversion_factor, tz, sequence_length, forcast_horizon, cutoff_date, na_filter)
+train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+
+
+
 results = {h: {'r2': [], 'nse': [], 'willmott': [], 'train_loss': []} for h in forcast_horizons}
 final_preds = {}
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-for forcast_horizon in forcast_horizons:
-    print(f" Forecast Horizon: {forcast_horizon} days")
-    final_preds[forcast_horizon] = []
-
-    for run in range(n_runs):
-        print(f" Run {run + 1}/{n_runs}")
-
-        X_seq, y_seq = [], []
-        for i in range(len(y) - sequence_length - forcast_horizon + 1):
-            X_seq.append(X_raw[:, i:i + sequence_length].T)
-            y_seq.append(y[i + sequence_length + forcast_horizon - 1])  
-        
-        X_seq = np.array(X_seq, dtype=np.float32)
-        y_seq = np.array(y_seq, dtype=np.float32).reshape(-1, 1)
-
-        target_dates = full_index[sequence_length : len(full_index) - forcast_horizon + 1]
-        target_dates = np.array(target_dates[:len(y_seq)])
-        cutoff_date = np.datetime64('2020-01-01')
-        train_mask = target_dates < cutoff_date
-        test_mask = target_dates >= cutoff_date
-        dates = target_dates[test_mask]
-
-        X_train, y_train = X_seq[train_mask], y_seq[train_mask]
-        X_test, y_test = X_seq[test_mask], y_seq[test_mask]
-
-        # Normalize X based on training data 
-        mean = X_train.mean(axis=(0, 1), keepdims=True)
-        std = X_train.std(axis=(0, 1), keepdims=True) + 1e-8
-        X_train = (X_train - mean) / std
-        X_test = (X_test - mean) / std
-
-        # Normalize Y
-        scaler_y = StandardScaler()
-        y_train_scaled = scaler_y.fit_transform(y_train)
-        y_test_scaled = scaler_y.transform(y_test)
-
-        train_dataset = DischargeDataset(X_train, y_train_scaled)
-        test_dataset = DischargeDataset(X_test, y_test_scaled)
-        train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-        test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
-
-        model = CNN_LSTM(
-                input_channels=X_raw.shape[0],
-                seq_len=sequence_length).to(device)
-        
-
-        optimizer = torch.optim.Adam(model.parameters(), lr=1.15e-6, weight_decay=0.5e-4)  
-        criterion = nn.MSELoss() 
-
-        r2_history, nse_history, willmott_history, loss_history = [], [], [], []
-
-        for epoch in range(epochs):
-            model.train()
-            epoch_loss = 0
-            for inputs, targets in train_loader:
-                inputs, targets = inputs.to(device), targets.to(device)
-                outputs = model(inputs)
-                loss = criterion(outputs, targets)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                epoch_loss += loss.item() * inputs.size(0)
-
-            avg_loss = epoch_loss / len(train_loader.dataset)
-
-            model.eval()
-            all_preds, all_targets = [], []
-            with torch.no_grad():
-                for inputs, targets in test_loader:
-                    inputs, targets = inputs.to(device), targets.to(device)
-                    outputs = model(inputs)
-                    all_preds.append(outputs.cpu().numpy())
-                    all_targets.append(targets.cpu().numpy())
-
-            y_pred = scaler_y.inverse_transform(np.concatenate(all_preds))
-            y_true = scaler_y.inverse_transform(np.concatenate(all_targets))          
-            
-            r2 = r2_score(y_true.flatten(), y_pred.flatten())
-            nse_val = 1 - np.sum((y_true - y_pred) ** 2) / np.sum((y_true - np.mean(y_true)) ** 2)
-            d_index = 1 - np.sum((y_true - y_pred) ** 2) / np.sum((np.abs(y_pred - np.mean(y_true)) + np.abs(y_true - np.mean(y_true))) ** 2)
-
-            r2_history.append(r2)
-            nse_history.append(nse_val)
-            willmott_history.append(d_index)
-            loss_history.append(avg_loss)
+model = CNN_LSTM(
+        input_channels=X_raw.shape[0],
+        seq_len=sequence_length).to(device)
 
 
-            print(f"Epoch {epoch+1:02d}, Loss: {avg_loss:.4f}, R²: {r2:.4f}, NSE: {nse_val:.4f}, d: {d_index:.4f}")
-            
-            # Evaluate on training set
-            model.eval()
-            train_preds, train_targets = [], []
-            with torch.no_grad():
-                for inputs, targets in train_loader:
-                    inputs, targets = inputs.to(device), targets.to(device)
-                    outputs = model(inputs)
-                    train_preds.append(outputs.cpu().numpy())
-                    train_targets.append(targets.cpu().numpy())
-            
-            y_pred_train_scaled = np.concatenate(train_preds)
-            y_true_train = y_train 
-            dates_train = target_dates[train_mask]
+optimizer = torch.optim.Adam(model.parameters(), lr=1.15e-6, weight_decay=0.5e-4)
+criterion = nn.MSELoss()
 
-        
-        best_willmott = -np.inf
-        best_preds = None
-        
-        if d_index > best_willmott:
-            best_willmott = d_index
-            best_preds = {
-                "y_true": y_true,
-                "y_pred": y_pred,
-                "dates": target_dates[test_mask]
-                }
+r2_history, nse_history, willmott_history, loss_history = [], [], [], []
 
-        results[forcast_horizon]['r2'].append(r2_history)
-        results[forcast_horizon]['nse'].append(nse_history)
-        results[forcast_horizon]['willmott'].append(willmott_history)
-        results[forcast_horizon]['train_loss'].append(loss_history)
-        
-        final_preds[forcast_horizon].append(best_preds)
+for epoch in range(epochs):
+    model.train()
+    epoch_loss = 0
+    for inputs, targets in train_loader:
+        inputs, targets = inputs.to(device), targets.to(device)
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        epoch_loss += loss.item() * inputs.size(0)
+
+    avg_loss = epoch_loss / len(train_loader.dataset)
+
+    model.eval()
+    all_preds, all_targets = [], []
+    with torch.no_grad():
+        for inputs, targets in test_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
+            outputs = model(inputs)
+            all_preds.append(outputs.cpu().numpy())
+            all_targets.append(targets.cpu().numpy())
+
+    y_pred = scaler_y.inverse_transform(np.concatenate(all_preds))
+    y_true = scaler_y.inverse_transform(np.concatenate(all_targets))
+
+    r2 = r2_score(y_true.flatten(), y_pred.flatten())
+    nse_val = 1 - np.sum((y_true - y_pred) ** 2) / np.sum((y_true - np.mean(y_true)) ** 2)
+    d_index = 1 - np.sum((y_true - y_pred) ** 2) / np.sum((np.abs(y_pred - np.mean(y_true)) + np.abs(y_true - np.mean(y_true))) ** 2)
+
+    r2_history.append(r2)
+    nse_history.append(nse_val)
+    willmott_history.append(d_index)
+    loss_history.append(avg_loss)
+
+    print(f"Epoch {epoch+1:02d}, Loss: {avg_loss:.4f}, R²: {r2:.4f}, NSE: {nse_val:.4f}, d: {d_index:.4f}")
+
+# Evaluate on training set
+model.eval()
+train_preds, train_targets = [], []
+with torch.no_grad():
+    for inputs, targets in train_loader:
+        inputs, targets = inputs.to(device), targets.to(device)
+        outputs = model(inputs)
+        train_preds.append(outputs.cpu().numpy())
+        train_targets.append(targets.cpu().numpy())
+
+y_pred_train_scaled = np.concatenate(train_preds)
+y_true_train = y_train
+dates_train = target_dates[train_mask]
+
+ # Evaluate on testing set
+model.eval()
+train_preds, train_targets = [], []
+with torch.no_grad():
+    for inputs, targets in train_loader:
+        inputs, targets = inputs.to(device), targets.to(device)
+        outputs = model(inputs)
+        train_preds.append(outputs.cpu().numpy())
+        train_targets.append(targets.cpu().numpy())
+
+y_pred_train_scaled = np.concatenate(train_preds)
+y_true_train = y_train
+dates_train = target_dates[train_mask]
+
+       
+best_willmott = -np.inf
+best_preds = None
+
+if d_index > best_willmott:
+    best_willmott = d_index
+    best_preds = {
+        "y_true": y_true,
+        "y_pred": y_pred,
+        "dates": target_dates[test_mask]
+        }
+
+results[forcast_horizon]['r2'].append(r2_history)
+results[forcast_horizon]['nse'].append(nse_history)
+results[forcast_horizon]['willmott'].append(willmott_history)
+results[forcast_horizon]['train_loss'].append(loss_history)
+
+final_preds[forcast_horizon].append(best_preds)
 
 
 torch.save(model, f"full_model_{forcast_horizon}_{target_site}")
