@@ -48,37 +48,38 @@ with open(json_path) as f:
 with open(json_path_precipitation) as f:
    raw_data_precipitation = json.load(f)
 
-#  Processing Functions (REMOVE THE UTC LATER AND DOWNLOAD WITH UTC AS TZ)
-def process_discharge(ts, index):
-    ts = pd.Series(ts).replace([-999999, -99999, -9999], np.nan)
+def remove_nans(ts):
+    return ts.replace([-999999, -99999, -9999], np.nan)
+
+
+def delocalize_timeseries(ts):
     ts.index = pd.to_datetime(ts.index)
     if ts.index.tz is None:
         ts.index = ts.index.tz_localize("UTC")
     else:
         ts.index = ts.index.tz_convert("UTC")
-    if index.tz is None:
-        index = index.tz_localize("UTC")
-    else:
-        index = index.tz_convert("UTC")
-    ts = ts.sort_index().reindex(index)
-    return ts * 0.0283168466  # cfs to m³/s
+   return ts
 
-def process_precipitation(ts, index):
-    ts = pd.Series(ts).replace([-999999, -99999, -9999], np.nan)
-    ts.index = pd.to_datetime(ts.index)
-    if ts.index.tz is None:
-        ts.index = ts.index.tz_localize("UTC")
-    else:
-        ts.index = ts.index.tz_convert("UTC")
-    if index.tz is None:
-        index = index.tz_localize("UTC")
-    else:
-        index = index.tz_convert("UTC")
-    ts = ts.sort_index().reindex(index)
-    return ts * 2.54  # in to cm
+def generate_full_index(start, end, localize=True, tz="UTC"):
+    index = pd.date_range(start=start, end=end)
+    if localize:
+        if index.tz is None:
+            index = index.tz_localize(tz)
+        else:
+            index = index.tz_convert(tz)
+    return index
 
+def filter_and_fill_ts(ts, na_filter=0.25):
+    """
+    Filter out time series with more than na_filter proportion of NaNs.
+    Fill remaining NaNs using interpolation and forward/backward fill.
+    """
+    if ts.isna().mean() > na_filter:
+        return None
+    ts = ts.interpolate(limit_direction="both").ffill().bfill()
+    return ts
 
-#  Process Discharge and Precipitation 
+#  Process Discharge and Precipitation
 site_dict_discharge = {}
 site_dict_precip = {}
 
@@ -96,7 +97,7 @@ for huc_sites in raw_data_precipitation.values():
             if s.isna().mean() <= 0.25: #remove later
                site_dict_precip[site_no] = s.interpolate(limit_direction="both").ffill().bfill()
 
-def load_target():
+def load_target(target_site):
     df = nwis.get_dv(sites=target_site, parameterCd="00060", start=start_date, end=end_date)[0]
     ts = df['00060_Mean']
     ts.index = pd.to_datetime(ts.index)
@@ -135,11 +136,49 @@ epochs = epochs_intial  # reassigned so I can rerun code without importing data 
 
 # Dataset Class 
 class DischargeDataset(Dataset):
-    def __init__(self, X, y):
-        self.X = torch.tensor(X, dtype=torch.float32)
-        self.y = torch.tensor(y, dtype=torch.float32)
+    def __init__(self, start, end, data_files, target_site, tz="UTC", na_filter=0.25):
+        self.start = start
+        self.end = end
+        self.full_index = generate_full_index(start, end, localize=True, tz=tz)
+        self.raw_timeseries = self.load_data(data_files)
+        self.target_data = load_target(target_site)
     def __len__(self): return self.X.shape[0]
     def __getitem__(self, idx): return self.X[idx], self.y[idx]
+
+    def load_data(self, data_files, conversion_factor=1.0):
+        data = []
+        for file in data_files:
+            if type(file) is str:
+                Ext = Path(file).suffix.lower()
+                if ext in ['.csv', '.txt']:
+                    ts = pd.read_csv(file, index_col=0, parse_dates=True)
+                elif ext in ['.json']:
+                    with open(file, 'r') as f:
+                        ts = pd.Series(json.load(f))
+            elif type(file) is dict:
+                file_path = file['path']
+                conversion_factor = file['conversion_factor']
+                data_key = file['data_key']
+                with open(file_path, 'r') as f:
+                    for huc_sites in json.load(f).values():
+                        for site_no, info in huc_sites.items():
+                            ts = pd.Series(info[data_key])
+                            ts = remove_nans(ts)
+                            ts = delocalize_timeseries(ts)
+                            ts = ts.sort_index().reindex(self.full_index)
+                            ts = ts* conversion_factor  # Apply conversion factor
+                            data.append(ts)
+        return np.array(data)
+
+    def process_data(self):
+        processed_data = []
+        for data in self.raw_timeseries:
+            if data.isna().mean() <= self.na_filter:
+                processed_data.append(data.interpolate(limit_direction="both").ffill().bfill().reindex_like(self.target_data))
+        processed_data.append(self.target_data)
+        processed_data.append(self.target_data.diff().bfill())  # Add difference of target discharge
+        self.X = np.stack([s.values for s in processed_data], axis=0)
+
 
 
 # Model Definitions
