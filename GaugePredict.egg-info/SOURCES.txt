@@ -1,0 +1,13 @@
+LICENSE
+README.md
+pyproject.toml
+GaugePredict/downloader.py
+GaugePredict/downloader_test.py
+GaugePredict/plotting_routines.py
+GaugePredict/predict.py
+GaugePredict/routines.py
+GaugePredict.egg-info/PKG-INFO
+GaugePredict.egg-info/SOURCES.txt
+GaugePredict.egg-info/dependency_links.txt
+GaugePredict.egg-info/requires.txt
+GaugePredict.egg-info/top_level.txt
