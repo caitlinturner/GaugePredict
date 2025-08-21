@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: GaugePredict
+Version: 0.1.0
+Summary: Hydrologic gauge prediction and spatial analysis
+Author-email: "Caitlin R. R. Turner" <cturn65@lsu.edu>
+License: MIT
+Project-URL: Homepage, https://github.com/yourusername/GaugePredict
+Project-URL: Issues, https://github.com/yourusername/GaugePredict/issues
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pandas
+Requires-Dist: geopandas
+Requires-Dist: matplotlib
+Requires-Dist: cmocean
+Requires-Dist: contextily
+Requires-Dist: dataretrieval
+Dynamic: license-file
+
+README.md
