@@ -1,109 +1,212 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Aug 13 09:58:33 2025
-
-@author: cturn
+Download and cache daily-values time series from USGS NWIS by HUC.
 """
+
+from __future__ import division, print_function, absolute_import
 
 import json
 from pathlib import Path
+
 import pandas as pd
 from dataretrieval import nwis
 
 
 
-## Create Names
-data_dir = Path("cached_data_parameter")
-json_path = data_dir / "site_dict_parameter.json"
-start_date, end_date = "2005-01-02", "2024-12-31"
-huc_codes = ["02", "03", "04","05", "06", "07", "08", "09", "10", "11", "14"]
-percent_threshold = 95 
-paramter_code = "00060"
-parameter = "discharge"
-data_dir = Path(f"cached_data_{parameter}")
+
+# --------------------------------------------------------
+# Helper Functions
+# --------------------------------------------------------
+def _ensure_dir(path):
+    """Create parent directory for a file path if missing."""
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
 
 
-##  Find Sites in Zones
-full_index = pd.date_range(start=start_date, end=end_date)
-data_dir.mkdir(exist_ok=True)
-huc_codes = huc_codes
-site_info_list = []
-for huc_code in huc_codes:
-    sites = nwis.what_sites(huc=huc_code, parameterCd=paramter_code)
-    if isinstance(sites, tuple):
-        sites = sites[0]
-    sites['HUC'] = huc_code
-    site_info_list.append(sites)
-site_info_df = pd.concat(site_info_list, ignore_index=True)
-site_info_df = site_info_df[['site_no', 'dec_lat_va', 'dec_long_va', 'HUC']].rename(
-    columns={'dec_lat_va': 'Latitude', 'dec_long_va': 'Longitude'})
-start_date = pd.to_datetime(start_date).tz_localize("UTC")
-end_date = pd.to_datetime(end_date).tz_localize("UTC")  
-expected_days = (pd.to_datetime(end_date) - pd.to_datetime(start_date)).days
+def _daily_index_utc(start_date, end_date):
+    """Inclusive daily DatetimeIndex localized to UTC midnight."""
+    return pd.date_range(start=start_date, end=end_date, freq="D").tz_localize("UTC")
 
 
-## Make sure it has at least 95 percent data
-data_coverage = []
-parameter_data = {}
-for site_no in site_info_df['site_no']:
-    try:
-        df = nwis.get_dv(sites=site_no, parameterCd=paramter_code, start=start_date, end=end_date)[0]
-        df['site_no'] = site_no
-        valid_days = df[paramter_code].dropna().count()
-        data_coverage.append({'site_no': site_no, 'valid_days': valid_days})
-        parameter_data[site_no] = df
-
-    except Exception as e:
-        print("Skipping site {site_no}")
-coverage_df = pd.DataFrame(data_coverage)
-coverage_df['completeness_%'] = 100 * coverage_df['valid_days'] / expected_days
-coverage_df = coverage_df.merge(site_info_df, on='site_no', how='left')
-coverage_df = coverage_df.sort_values(by='completeness_%', ascending=False)
-high_quality_sites = coverage_df[coverage_df['completeness_%'] > percent_threshold]
-high_quality_ids = set(high_quality_sites['site_no'])
+def _to_utc_index(df):
+    """Return df with a tz-aware UTC DatetimeIndex inferred from index or 'datetime' column."""
+    out = df.copy()
+    if not isinstance(out.index, pd.DatetimeIndex):
+        if "datetime" in out.columns:
+            out.index = pd.to_datetime(out["datetime"])
+        else:
+            out.index = pd.to_datetime(out.index)
+    out.index = out.index.tz_localize("UTC") if out.index.tz is None else out.index.tz_convert("UTC")
+    return out
 
 
-## Download Data
-site_dict = {huc: {} for huc in huc_codes}
-for site_no, df in parameter_data.items():
-    if site_no not in high_quality_ids:
-        continue
-    if not isinstance(df.index, pd.DatetimeIndex):
-        df.index = pd.to_datetime(df.index)
-    df.index = df.index.tz_localize("UTC")
-    parameter_col = [col for col in df.columns if paramter_code in col and 'Sum' in col]
-    if not parameter_col:
-        print(f"no found for site {site_no}. skipping")
-        continue
-    parameter_ts = df[parameter_col[0]].sort_index()
-    row = high_quality_sites.loc[high_quality_sites['site_no'] == site_no]
-    lat = row['Latitude'].values[0]
-    lon = row['Longitude'].values[0]
-    completeness = row['completeness_%'].values[0]
-    huc = row['HUC'].values[0]
-    site_dict[huc][site_no] = {
-        'Latitude': lat,
-        'Longitude': lon,
-        'completeness_%': completeness,
-        'parameter': parameter_ts,
-        'HUC': huc}
+def _rank_by_order(name, order):
+    """Ranking key: first occurrence of tokens in `order`; fallback to length."""
+    name_l = name.lower()
+    for i, tag in enumerate(order):
+        if tag in name_l:
+            return i
+    return len(order)
 
-# Save to JSON
-json_serializable_dict = {}
 
-for huc_code, sites in site_dict.items():
-    json_serializable_dict[huc_code] = {}
-    for site_no, info in sites.items():
-        parameter = info['parameter'].dropna()
-        parameter_dict = {str(k): float(v) for k, v in parameter.items()}
+def _pick_parameter_col(df, parameter_code):
+    """Choose a DV column for a USGS parameter code with sensible suffix preference.
 
-        json_serializable_dict[huc_code][site_no] = {
-            'Latitude': info['Latitude'],
-            'Longitude': info['Longitude'],
-            'completeness_%': info['completeness_%'],
-            'parameter': parameter_dict,
-            'HUC': huc_code
+    **Inputs** :
+        df : `pd.DataFrame`
+            NWIS daily-values frame.
+        parameter_code : `str`
+            USGS parameter code (e.g., "00060").
+
+    **Outputs** :
+        col : `str or None`
+            Selected column name or None if not found.
+    """
+    cols = [c for c in df.columns if parameter_code in c]
+    if not cols:
+        return None
+    order = ["mean", "sum", "value", parameter_code]
+    cols_sorted = sorted(cols, key=lambda n: _rank_by_order(n, order))
+    return cols_sorted[0]
+
+
+# --------------------------------------------------------
+# Download HUC Data
+# --------------------------------------------------------
+def GaugebyHUC(start_date,
+               end_date,
+               huc_codes,
+               parameter_code,
+               percent_threshold,
+               data_dir,
+               json_path):
+    """Query NWIS by HUC, fetch daily values, screen by completeness, write JSON.
+
+    **Inputs** :
+        start_date, end_date : `str`
+            Inclusive daily window (YYYY-MM-DD).
+        huc_codes : `list`
+            List of HUC identifiers (e.g., ["01","02"] or full HUC codes accepted by NWIS).
+        parameter_code : `str`
+            USGS parameter code (e.g., "00060" discharge).
+        percent_threshold : `float`
+            Minimum completeness percentage to keep a site (0–100).
+        data_dir : `str or Path`
+            Directory for any local artifacts (created if missing).
+        json_path : `str or Path`
+            Output JSON filepath for serialized site data.
+
+    **Outputs** :
+        summary : `dict`
+            {
+              "num_hucs": int,
+              "num_sites_total": int,
+              "num_sites_kept": int,
+              "json_path": str
+            }
+    """
+    # setup
+    data_dir = Path(data_dir)
+    data_dir.mkdir(exist_ok=True)
+    json_path = Path(json_path)
+    _ensure_dir(json_path)
+
+    # expected daily index and length
+    full_index_utc = _daily_index_utc(start_date, end_date)
+    expected_days = len(full_index_utc)
+
+    # discover sites across HUCs
+    site_info_list = []
+    for huc in huc_codes:
+        sites = nwis.what_sites(huc=huc, parameterCd=parameter_code)
+        if isinstance(sites, tuple):  # some versions return (df, meta)
+            sites = sites[0]
+        if sites is None or len(sites) == 0:
+            continue
+        tmp = sites.copy()
+        tmp["HUC"] = huc
+        site_info_list.append(tmp)
+
+    if not site_info_list:
+        raise RuntimeError("no sites returned for requested HUC codes and parameter")
+
+    site_info_df = (
+        pd.concat(site_info_list, ignore_index=True)[
+            ["site_no", "dec_lat_va", "dec_long_va", "HUC"]
+        ]
+        .rename(columns={"dec_lat_va": "latitude", "dec_long_va": "longitude", "HUC": "huc"})
+        .reset_index(drop=True)
+    )
+
+    # pull DV data and compute coverage
+    data_coverage = []
+    parameter_data = {}
+
+    for site_no in site_info_df["site_no"]:
+        try:
+            dv = nwis.get_dv(sites=site_no,
+                             parameterCd=parameter_code,
+                             start=start_date,
+                             end=end_date)[0]
+        except Exception:
+            continue  # skip sites that fail
+
+        df = _to_utc_index(dv)
+        col = _pick_parameter_col(df, parameter_code)
+        if col is None:
+            continue
+
+        # align to UTC daily index before completeness
+        s = df[col].sort_index().reindex(full_index_utc)
+        valid_days = int(s.dropna().size)
+
+        data_coverage.append({"site_no": site_no, "valid_days": valid_days})
+        parameter_data[site_no] = s.rename("value").to_frame()
+
+    if not parameter_data:
+        raise RuntimeError("no daily values retrieved for any site")
+
+    coverage_df = pd.DataFrame(data_coverage)
+    coverage_df["completeness_%"] = 100.0 * coverage_df["valid_days"] / float(expected_days)
+    coverage_df = (
+        coverage_df.merge(site_info_df, on="site_no", how="left")
+        .sort_values(by="completeness_%", ascending=False)
+        .reset_index(drop=True)
+    )
+
+    # screen by coverage
+    kept = coverage_df[coverage_df["completeness_%"] > float(percent_threshold)]
+    kept_ids = set(kept["site_no"])
+
+    # build nested dict by HUC
+    site_dict = {h: {} for h in huc_codes}
+    for site_no, df in parameter_data.items():
+        if site_no not in kept_ids:
+            continue
+
+        # serialize as date (ISO) to float using UTC dates
+        s = df["value"].dropna()
+        s.index = s.index.tz_convert("UTC")
+        pairs = ((ts.date().isoformat(), float(v)) for ts, v in s.items())
+
+        row = kept.loc[kept["site_no"] == site_no].iloc[0]
+        huc = row["huc"]
+
+        site_dict[huc][site_no] = {
+            "latitude": float(row["latitude"]),
+            "longitude": float(row["longitude"]),
+            "completeness_%": float(row["completeness_%"]),
+            "parameter": dict(pairs),
+            "cluster": None,
+            "huc": huc,
         }
 
-with open(json_path, 'w') as f:
-    json.dump(json_serializable_dict, f)
+    # write JSON
+    with json_path.open("w", encoding="utf-8") as f:
+        json.dump(site_dict, f)
+
+    return {
+        "num_hucs": int(len(huc_codes)),
+        "num_sites_total": int(len(site_info_df)),
+        "num_sites_kept": int(sum(len(v) for v in site_dict.values())),
+        "json_path": str(json_path.resolve()),
+    }

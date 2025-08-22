@@ -1,27 +1,28 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 26 13:37:45 2025
-
-@author: cturn
+Flexible temporal models (CNN, LSTM, or hybrid)
+predictworking2.py 
 """
+from __future__ import division, print_function, absolute_import
 
+import numpy as np
+import torch
+from torch import nn
+from torch.utils.data import DataLoader, Dataset
+from sklearn.metrics import r2_score
 import json
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
-import matplotlib.dates as mdates
 from dataretrieval import nwis
-from scipy.stats import linregress
-import warnings
-warnings.filterwarnings("ignore")
-import time as tm
+
+
+# --------------------------------------------------------
+# 
+# --------------------------------------------------------
+
 
 def remove_nans(ts):
     return ts.replace([-999999, -99999, -9999], np.nan)
@@ -70,7 +71,7 @@ def load_data(data_files, full_index, conversion_factor=1.0):
         data = []
         for file in data_files:
             if type(file) is str:
-                Ext = Path(file).suffix.lower()
+                ext = Path(file).suffix.lower()
                 if ext in ['.csv', '.txt']:
                     ts = pd.read_csv(file, index_col=0, parse_dates=True)
                 elif ext in ['.json']:
@@ -142,385 +143,483 @@ def get_train_and_test_sets(data_files, target_site, start_date, end_date, conve
     test_dataset = DischargeDataset(X_test, y_test_scaled)
     return train_dataset, test_dataset
 
-# Dataset Class 
-class DischargeDataset(Dataset):
-    def __init__(self, X, y):
-        self.X = torch.tensor(X, dtype=torch.float32)
-        self.y = torch.tensor(y, dtype=torch.float32)
-    def __len__(self): return self.X.shape[0]
-    def __getitem__(self, idx): return self.X[idx], self.y[idx]
 
+# --------------------------------------------------------
+# Model definitions
+# --------------------------------------------------------
+class FlexibleTemporalModel(nn.Module):
+    """
+    Build one of: 'cnn', 'lstm', 'cnn_lstm'.
+    """
+    def __init__(self,
+                 model_type,
+                 input_channels,
+                 seq_len,
+                 cnn_layers=0,
+                 cnn_channels=128,
+                 cnn_kernel=3,
+                 cnn_dropout=0.2,
+                 lstm_hidden=128,
+                 lstm_layers=1,
+                 lstm_dropout=0.0,
+                 bidirectional=False,
+                 fc_dropout=0.4,
+                 out_features=1):
+        super(FlexibleTemporalModel, self).__init__()
 
-
-# Model Definitions
-class CNN_LSTM(nn.Module):
-    def __init__(self, input_channels, seq_len):
-        super().__init__()
-
-        # Convolutional layers
-        self.conv1 = nn.Conv1d(in_channels=input_channels, out_channels=128, kernel_size=15, padding=7)
-        self.conv2 = nn.Conv1d(in_channels=128, out_channels=128, kernel_size=3, padding=3)
-        self.conv3 = nn.Conv1d(in_channels=128, out_channels=128, kernel_size=3, padding=3)
-
-        # Activation and dropout
+        self.model_type = str(model_type).lower()
+        self.seq_len = seq_len
         self.relu = nn.ReLU()
-        self.dropout_cnn = nn.Dropout(p=0.2)
 
-        # LSTM layer
-        self.lstm = nn.LSTM(input_size=128, hidden_size=128, num_layers=3,
-            dropout=0.2, batch_first=True, bidirectional=False)
+        # CNN stack
+        self.use_cnn = self.model_type in ("cnn", "cnn_lstm")
+        if self.use_cnn:
+            padding = int(cnn_kernel // 2)  # preserve length
+            convs = []
+            in_ch = input_channels
+            for _ in range(int(cnn_layers)):
+                convs.append(nn.Conv1d(in_channels=in_ch,
+                                       out_channels=cnn_channels,
+                                       kernel_size=cnn_kernel,
+                                       padding=padding))
+                in_ch = cnn_channels
+            self.cnn = nn.ModuleList(convs)
+            self.dropout_cnn = nn.Dropout(p=float(cnn_dropout))
+            self.post_cnn_channels = cnn_channels
+        else:
+            self.cnn = None
+            self.dropout_cnn = nn.Identity()
+            self.post_cnn_channels = input_channels
 
-        # Fully connected output
-        self.dropout_fc = nn.Dropout(p=0.4)
-        self.fc = nn.Linear(in_features=128, out_features=1)
+        # LSTM block
+        self.use_lstm = self.model_type in ("lstm", "cnn_lstm")
+        if self.use_lstm:
+            self.lstm = nn.LSTM(input_size=self.post_cnn_channels,
+                                hidden_size=int(lstm_hidden),
+                                num_layers=int(lstm_layers),
+                                dropout=float(lstm_dropout) if int(lstm_layers) > 1 else 0.0,
+                                batch_first=True,
+                                bidirectional=bool(bidirectional))
+            lstm_out = int(lstm_hidden) * (2 if bidirectional else 1)
+            head_in = lstm_out
+        else:
+            self.lstm = None
+            self.gap = nn.AdaptiveAvgPool1d(output_size=1)
+            head_in = self.post_cnn_channels
+
+        # FC head
+        self.dropout_fc = nn.Dropout(p=float(fc_dropout))
+        self.fc = nn.Linear(in_features=head_in, out_features=int(out_features))
 
     def forward(self, x):
-        # x: [batch_size, seq_len, input_channels]
-        x = x.permute(0, 2, 1)  # [batch_size, input_channels, seq_len]
+        # x: [batch, seq_len, input_channels]
+        if self.use_cnn:
+            x = x.permute(0, 2, 1)     # [B,C,L]
+            for conv in self.cnn:
+                x = self.relu(conv(x))
+            x = self.dropout_cnn(x)
+            if self.use_lstm:
+                x = x.permute(0, 2, 1) # [B,L,C]
 
-        x = self.conv1(x)
-        x = self.relu(x)
-        x = self.conv2(x)
-        x = self.relu(x)
-        x = self.conv3(x)
-        x = self.relu(x)
+        if self.use_lstm:
+            lstm_out, _ = self.lstm(x)               # [B,L,H]
+            feats = lstm_out[:, -1, :]
+        else:
+            feats = self.gap(x).squeeze(-1)          # [B,C]
 
-        x = self.dropout_cnn(x)
-
-        x = x.permute(0, 2, 1)  # [batch_size, seq_len, 32]
-        lstm_out, _ = self.lstm(x)  # [batch_size, seq_len, 128]
-        last_timestep = lstm_out[:, -1, :]  # [batch_size, 128]
-        
-        out = self.dropout_fc(last_timestep)  # [batch_size, 128]
-        out = self.fc(out)  #  [batch_size, 1]
-
+        out = self.dropout_fc(feats)
+        out = self.fc(out)
         return out
 
 
-# Training 
-
-data_files = [{'path': '../../data/cached_data/site_dict.json',
-               'conversion_factor': 0.0283168466,
-               'data_key': 'discharge'},
-              {'path': '../../data/cached_data_precipitation/site_dict_precipitation.json',
-               'conversion_factor': 2.54,
-               'data_key': 'precipitation'}]
-target_site = '07374000'
-start_date = "2005-01-01"
-end_date ="2025-01-01"
-tz= "UTC"
-sequence_length = 90
-forcast_horizon = 15
-cutoff_date = np.datetime64('2020-01-01')
-na_filter=0.25
-conversion_factor = 1
-train_dataset, test_dataset = get_train_and_test_sets(data_files, target_site, start_date, end_date, conversion_factor, tz, sequence_length, forcast_horizon, cutoff_date, na_filter)
-train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
-
-
-
-
-results = {h: {'r2': [], 'nse': [], 'willmott': [], 'train_loss': []} for h in forcast_horizons}
-final_preds = {}
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-model = CNN_LSTM(
-        input_channels=X_raw.shape[0],
-        seq_len=sequence_length).to(device)
+# --------------------------------------------------------
+# Builders
+# --------------------------------------------------------
+def build_model(model_type,
+                input_channels,
+                seq_len,
+                cnn_layers=0,
+                cnn_channels=128,
+                cnn_kernel=3,
+                cnn_dropout=0.2,
+                lstm_hidden=128,
+                lstm_layers=1,
+                lstm_dropout=0.2,
+                bidirectional=False,
+                fc_dropout=0.4,
+                out_features=1):
+    return FlexibleTemporalModel(model_type=model_type,
+                                 input_channels=input_channels,
+                                 seq_len=seq_len,
+                                 cnn_layers=cnn_layers,
+                                 cnn_channels=cnn_channels,
+                                 cnn_kernel=cnn_kernel,
+                                 cnn_dropout=cnn_dropout,
+                                 lstm_hidden=lstm_hidden,
+                                 lstm_layers=lstm_layers,
+                                 lstm_dropout=lstm_dropout,
+                                 bidirectional=bidirectional,
+                                 fc_dropout=fc_dropout,
+                                 out_features=out_features)
 
 
-optimizer = torch.optim.Adam(model.parameters(), lr=1.15e-6, weight_decay=0.5e-4)
-criterion = nn.MSELoss()
-
-r2_history, nse_history, willmott_history, loss_history = [], [], [], []
-
-for epoch in range(epochs):
-    model.train()
-    epoch_loss = 0
-    for inputs, targets in train_loader:
-        inputs, targets = inputs.to(device), targets.to(device)
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        epoch_loss += loss.item() * inputs.size(0)
-
-    avg_loss = epoch_loss / len(train_loader.dataset)
-
+# --------------------------------------------------------
+# Training utilities
+# --------------------------------------------------------
+def evaluate_to_arrays(model, loader, device):
     model.eval()
-    all_preds, all_targets = [], []
+    preds, targs = [], []
     with torch.no_grad():
-        for inputs, targets in test_loader:
-            inputs, targets = inputs.to(device), targets.to(device)
+        for inputs, targets in loader:
+            inputs = inputs.to(device)
+            targets = targets.to(device)
             outputs = model(inputs)
-            all_preds.append(outputs.cpu().numpy())
-            all_targets.append(targets.cpu().numpy())
-
-    y_pred = scaler_y.inverse_transform(np.concatenate(all_preds))
-    y_true = scaler_y.inverse_transform(np.concatenate(all_targets))
-
-    r2 = r2_score(y_true.flatten(), y_pred.flatten())
-    nse_val = 1 - np.sum((y_true - y_pred) ** 2) / np.sum((y_true - np.mean(y_true)) ** 2)
-    d_index = 1 - np.sum((y_true - y_pred) ** 2) / np.sum((np.abs(y_pred - np.mean(y_true)) + np.abs(y_true - np.mean(y_true))) ** 2)
-
-    r2_history.append(r2)
-    nse_history.append(nse_val)
-    willmott_history.append(d_index)
-    loss_history.append(avg_loss)
-
-    print(f"Epoch {epoch+1:02d}, Loss: {avg_loss:.4f}, R²: {r2:.4f}, NSE: {nse_val:.4f}, d: {d_index:.4f}")
-
-# Evaluate on training set
-model.eval()
-train_preds, train_targets = [], []
-with torch.no_grad():
-    for inputs, targets in train_loader:
-        inputs, targets = inputs.to(device), targets.to(device)
-        outputs = model(inputs)
-        train_preds.append(outputs.cpu().numpy())
-        train_targets.append(targets.cpu().numpy())
-
-y_pred_train_scaled = np.concatenate(train_preds)
-y_true_train = y_train
-dates_train = target_dates[train_mask]
-
- # Evaluate on testing set
-model.eval()
-train_preds, train_targets = [], []
-with torch.no_grad():
-    for inputs, targets in train_loader:
-        inputs, targets = inputs.to(device), targets.to(device)
-        outputs = model(inputs)
-        train_preds.append(outputs.cpu().numpy())
-        train_targets.append(targets.cpu().numpy())
-
-y_pred_train_scaled = np.concatenate(train_preds)
-y_true_train = y_train
-dates_train = target_dates[train_mask]
-
-       
-best_willmott = -np.inf
-best_preds = None
-
-if d_index > best_willmott:
-    best_willmott = d_index
-    best_preds = {
-        "y_true": y_true,
-        "y_pred": y_pred,
-        "dates": target_dates[test_mask]
-        }
-
-results[forcast_horizon]['r2'].append(r2_history)
-results[forcast_horizon]['nse'].append(nse_history)
-results[forcast_horizon]['willmott'].append(willmott_history)
-results[forcast_horizon]['train_loss'].append(loss_history)
-
-final_preds[forcast_horizon].append(best_preds)
+            preds.append(outputs.detach().cpu().numpy())
+            targs.append(targets.detach().cpu().numpy())
+    y_pred = np.concatenate(preds, axis=0)
+    y_true = np.concatenate(targs, axis=0)
+    return y_true, y_pred
 
 
-torch.save(model, f"full_model_{forcast_horizon}_{target_site}")
+def compute_metrics(y_true, y_pred):
+    r2 = float(r2_score(y_true.reshape(-1, 1), y_pred.reshape(-1, 1)))
+    num = np.sum((y_true - y_pred) ** 2)
+    den = np.sum((y_true - np.mean(y_true)) ** 2)
+    nse = float(1.0 - num / den) if den != 0 else np.nan
+    num_d = np.sum((y_true - y_pred) ** 2)
+    den_d = np.sum((np.abs(y_pred - np.mean(y_true)) + np.abs(y_true - np.mean(y_true))) ** 2)
+    d_index = float(1.0 - num_d / den_d) if den_d != 0 else np.nan
+    return r2, nse, d_index
 
-    
 
-#figures (fix this code later)
-# Model Results
-fig, axs = plt.subplots(1, 3, figsize=(7, 2), sharex=True, sharey = True, dpi=600)
-metrics = ['train_loss', 'r2', 'willmott']
-titles = ['Training Loss (MSE)', 'R² Score', 'Willmott Index']
-ylabels = [ 'Loss (MSE)', r'Pearson correlation $(R^2)$', r'Willmott index ($d$)']
+def train_model(model,
+                train_loader,
+                test_loader,
+                epochs,
+                device,
+                optimizer,
+                criterion,
+                scaler_y=None):
+    r2_hist, nse_hist, willmott_hist, loss_hist = [], [], [], []
+    best_willmott = -np.inf
+    best = {"y_true": None, "y_pred": None, "best_willmott": best_willmott}
 
-colors = [cm.cm.haline(0.05), cm.cm.haline(0.2), cm.cm.haline(0.4), cm.cm.haline(0.55), cm.cm.haline(0.65), cm.cm.haline(0.75)]
-linestyles = ['--', '-.', ':', '--', '-.', ':']
+    for epoch in range(int(epochs)):
+        model.train()
+        running, nobs = 0.0, 0
+        for inputs, targets in train_loader:
+            inputs = inputs.to(device)
+            targets = targets.to(device)
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            bs = inputs.size(0)
+            running += loss.item() * bs
+            nobs += bs
 
-for i, metric in enumerate(metrics):
-    for j, horizon in enumerate(forcast_horizons):
-        runs = np.array(results[horizon][metric])  # shape: (n_runs, epochs)
-        mean = runs.mean(axis=0)
-        std = runs.std(axis=0)
-        epochs = np.arange(mean.shape[0])
+        avg_loss = running / float(max(nobs, 1))
+        loss_hist.append(avg_loss)
 
-        axs[i].plot(
-            epochs, mean,
-            label=f'{horizon}-day',
-            color=colors[j % len(colors)],
-            linestyle=linestyles[j % len(linestyles)],
-            linewidth=1.0
+        y_true, y_pred = evaluate_to_arrays(model, test_loader, device)
+        if scaler_y is not None:
+            y_true = scaler_y.inverse_transform(y_true)
+            y_pred = scaler_y.inverse_transform(y_pred)
+        r2, nse, d_index = compute_metrics(y_true, y_pred)
+        r2_hist.append(r2)
+        nse_hist.append(nse)
+        willmott_hist.append(d_index)
+
+        if d_index > best_willmott:
+            best_willmott = d_index
+            best = {"y_true": y_true, "y_pred": y_pred, "best_willmott": best_willmott}
+
+        print("Epoch %02d, Loss: %.6f, R2: %.4f, NSE: %.4f, d: %.4f"
+              % (epoch + 1, avg_loss, r2, nse, d_index))
+
+    histories = {"r2": r2_hist, "nse": nse_hist, "willmott": willmott_hist, "train_loss": loss_hist}
+    return histories, best
+
+
+# --------------------------------------------------------
+# BTR setup (CNN+LSTM configuration)
+# --------------------------------------------------------
+def cnn_lstm_model(input_channels, sequence_length):
+    model = build_model(model_type="cnn_lstm",
+                        input_channels=input_channels,
+                        seq_len=sequence_length,
+                        cnn_layers=3,
+                        cnn_channels=128,
+                        cnn_kernel=3,
+                        cnn_dropout=0.2,
+                        lstm_hidden=128,
+                        lstm_layers=3,
+                        lstm_dropout=0.2,
+                        bidirectional=False,
+                        fc_dropout=0.4,
+                        out_features=1)
+    first = nn.Conv1d(in_channels=input_channels, out_channels=128, kernel_size=15, padding=7)
+    model.cnn[0] = first
+    return model
+
+
+def model_setup(train_loader,
+                       test_loader,
+                       input_channels,
+                       sequence_length,
+                       epochs,
+                       scaler_y=None,
+                       lr=1.15e-6,
+                       weight_decay=0.5e-4,
+                       save_path=None,
+                       device=None):
+    device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = cnn_lstm_model(input_channels=input_channels, sequence_length=sequence_length).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=float(lr), weight_decay=float(weight_decay))
+    criterion = nn.MSELoss()
+    histories, best = train_model(model=model,
+                                  train_loader=train_loader,
+                                  test_loader=test_loader,
+                                  epochs=epochs,
+                                  device=device,
+                                  optimizer=optimizer,
+                                  criterion=criterion,
+                                  scaler_y=scaler_y)
+    if save_path:
+        torch.save(model, save_path)
+    return model, histories, best
+
+
+
+
+# Dataset required by get_train_and_test_sets()
+class DischargeDataset(Dataset):
+    """
+    Simple tensor wrapper for (X, y).
+    X: [N, seq_len, channels], y: [N, 1]
+    """
+    def __init__(self, X, y):
+        self.X = torch.from_numpy(X).float()
+        self.y = torch.from_numpy(y).float()
+
+    def __len__(self):
+        return int(self.X.shape[0])
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+
+
+def _fit_scaler_from_dataset(train_dataset):
+    """
+    Recreate a y-scaler from the already-scaled training dataset if needed.
+    """
+    y_arr = train_dataset.y.numpy()
+    scaler = StandardScaler(with_mean=False, with_std=False)  # identity placeholder
+    # If further scaling is desired later, adjust here.
+    return scaler
+
+
+def make_datasets_and_loaders(data_files,
+                              target_site,
+                              start_date_str,
+                              end_date_str,
+                              tz,
+                              sequence_length,
+                              forcast_horizon,
+                              cutoff_date,
+                              na_filter=0.25,
+                              batch_train=128,
+                              batch_test=32,
+                              shuffle_train=True):
+    """
+    Prepare train/test datasets and DataLoaders by calling the collaborator's API.
+
+    Notes:
+    - The collaborator's `load_target` uses module-level `start_date`/`end_date`.
+      Set those names in the global namespace so we don't alter their function.
+    """
+    global start_date, end_date
+    start_date = start_date_str
+    end_date = end_date_str
+
+    train_dataset, test_dataset = get_train_and_test_sets(
+        data_files=data_files,
+        target_site=target_site,
+        start_date=start_date,
+        end_date=end_date,
+        conversion_factor=1.0,
+        tz=tz,
+        sequence_length=sequence_length,
+        forcast_horizon=forcast_horizon,
+        cutoff_date=cutoff_date,
+        na_filter=na_filter
+    )
+
+    # Rebuild a y scaler (identity placeholder, datasets are already scaled)
+    scaler_y = _fit_scaler_from_dataset(train_dataset)
+
+    train_loader = DataLoader(train_dataset, batch_size=int(batch_train), shuffle=bool(shuffle_train))
+    test_loader = DataLoader(test_dataset, batch_size=int(batch_test), shuffle=False)
+
+    # infer input_channels from one sample: [seq_len, channels]
+    sample_x, _ = train_dataset[0]
+    input_channels = int(sample_x.shape[-1])
+
+    return train_loader, test_loader, scaler_y, input_channels
+
+
+def fit_model_generic(train_loader,
+                      test_loader,
+                      input_channels,
+                      sequence_length,
+                      model_type="cnn_lstm",
+                      cnn_layers=3,
+                      lstm_layers=3,
+                      epochs=50,
+                      lr=1.15e-6,
+                      weight_decay=0.5e-4,
+                      scaler_y=None,
+                      save_path=None,
+                      device=None):
+    """
+    Build and train a model using the flexible builder.
+    """
+    device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = build_model(model_type=model_type,
+                        input_channels=int(input_channels),
+                        seq_len=int(sequence_length),
+                        cnn_layers=int(cnn_layers),
+                        cnn_channels=128,
+                        cnn_kernel=3,
+                        cnn_dropout=0.2,
+                        lstm_hidden=128,
+                        lstm_layers=int(lstm_layers),
+                        lstm_dropout=0.2,
+                        bidirectional=False,
+                        fc_dropout=0.4,
+                        out_features=1).to(device)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=float(lr), weight_decay=float(weight_decay))
+    criterion = nn.MSELoss()
+
+    histories, best = train_model(model=model,
+                                  train_loader=train_loader,
+                                  test_loader=test_loader,
+                                  epochs=int(epochs),
+                                  device=device,
+                                  optimizer=optimizer,
+                                  criterion=criterion,
+                                  scaler_y=scaler_y)
+
+    if save_path:
+        torch.save(model, save_path)
+
+    return model, histories, best
+
+
+def fit_model_specific(train_loader,
+                       test_loader,
+                       input_channels,
+                       sequence_length,
+                       epochs=50,
+                       scaler_y=None,
+                       save_path=None,
+                       device=None):
+    """
+    Exact CNN+LSTM configuration (first conv k=15, 3 convs, LSTM 3 layers).
+    """
+    return model_setup(train_loader=train_loader,
+                              test_loader=test_loader,
+                              input_channels=int(input_channels),
+                              sequence_length=int(sequence_length),
+                              epochs=int(epochs),
+                              scaler_y=scaler_y,
+                              save_path=save_path,
+                              device=device)
+
+
+# --------------------------------------------------------
+# Notebook Exampple
+# --------------------------------------------------------
+def run_end_to_end(data_files,
+                   target_site,
+                   start_date,
+                   end_date,
+                   tz,
+                   sequence_length,
+                   forcast_horizon,
+                   cutoff_date,
+                   na_filter=0.25,
+                   batch_train=128,
+                   batch_test=32,
+                   model_type="cnn_lstm",
+                   cnn_layers=3,
+                   lstm_layers=3,
+                   epochs=50,
+                   lr=1.15e-6,
+                   weight_decay=0.5e-4,
+                   use_specific=False,
+                   save_path=None,
+                   device=None):
+    """
+    End-to-end helper for notebooks:
+      1) build datasets/loaders from collaborator's functions;
+      2) fit either a generic or the specific CNN+LSTM model;
+      3) return loaders, model, histories, best, and inferred input_channels.
+
+    **Example**
+        train_loader, test_loader, model, histories, best, input_ch = run_end_to_end(
+            data_files=data_files,
+            target_site='07374000',
+            start_date='2005-01-01',
+            end_date='2025-01-01',
+            tz='UTC',
+            sequence_length=90,
+            forcast_horizon=15,
+            cutoff_date=np.datetime64('2020-01-01'),
+            use_specific=True,
+            epochs=100,
+            save_path='full_model_15_07374000.pt'
         )
-        axs[i].fill_between(
-            epochs, mean - std, mean + std,
-            color=colors[j % len(colors)], alpha=0.15
-        )
+    """
+    train_loader, test_loader, scaler_y, input_channels = make_datasets_and_loaders(
+        data_files=data_files,
+        target_site=target_site,
+        start_date_str=start_date,
+        end_date_str=end_date,
+        tz=tz,
+        sequence_length=sequence_length,
+        forcast_horizon=forcast_horizon,
+        cutoff_date=cutoff_date,
+        na_filter=na_filter,
+        batch_train=batch_train,
+        batch_test=batch_test,
+        shuffle_train=True
+    )
 
-    axs[i].set_ylabel(ylabels[i], fontsize=9)
-    axs[i].tick_params(labelsize=8)
-    axs[i].yaxis.set_major_formatter(mticker.FormatStrFormatter('%.1f'))
-    axs[i].xaxis.set_major_formatter(mticker.FormatStrFormatter('%.0f'))
+    if use_specific:
+        model, histories, best = fit_model_specific(train_loader=train_loader,
+                                                    test_loader=test_loader,
+                                                    input_channels=input_channels,
+                                                    sequence_length=sequence_length,
+                                                    epochs=epochs,
+                                                    scaler_y=scaler_y,
+                                                    save_path=save_path,
+                                                    device=device)
+    else:
+        model, histories, best = fit_model_generic(train_loader=train_loader,
+                                                   test_loader=test_loader,
+                                                   input_channels=input_channels,
+                                                   sequence_length=sequence_length,
+                                                   model_type=model_type,
+                                                   cnn_layers=cnn_layers,
+                                                   lstm_layers=lstm_layers,
+                                                   epochs=epochs,
+                                                   lr=lr,
+                                                   weight_decay=weight_decay,
+                                                   scaler_y=scaler_y,
+                                                   save_path=save_path,
+                                                   device=device)
 
-axs[0].set_ylim([-0.2, 1.0])
-axs[1].set_ylim([-0.2, 1.0])
-axs[2].set_ylim([-0.2, 1.0])
-axs[1].set_xlabel('Epoch', fontsize=10)
-
-axs[2].legend(
-    title='Forecast',
-    frameon=False,
-    fontsize=8,
-    title_fontsize=9,
-    handlelength=1.2,
-    handletextpad=0.3,
-    labelspacing=0.25,
-    loc='upper left',
-    bbox_to_anchor=(1.02, 1.0)
-)
-
-plt.tight_layout(pad=0.45, rect=[0, 0, 0.85, 1])  
-plt.show()
-
-
-
-
-## Time Series
-colors = [cm.cm.haline(0.05), cm.cm.haline(0.2), cm.cm.haline(0.4), cm.cm.haline(0.55), cm.cm.haline(0.65), cm.cm.haline(0.75)]
-linestyles = ['--', '-.', ':', '--', '-.', ':']
-def plot_timeseries(preds_dict, key_true, key_pred, key_dates, label, date_start, date_end):
-    plt.figure(figsize=(7, 2), dpi=600)
-    for idx, horizon in enumerate(forcast_horizons):
-        preds = preds_dict[horizon][0]
-        y_true = preds[key_true].ravel()
-        y_pred = preds[key_pred].ravel()
-        dates = pd.to_datetime(preds[key_dates])
-
-        mask = (dates >= date_start) & (dates <= date_end)
-        if idx == 0:
-            plt.plot(dates[mask], y_true[mask], label="Measured",
-                     color="black", linestyle="-", linewidth=1)
-            
-        plt.plot(dates[mask], y_pred[mask], label=f"{horizon} Day",
-                 color=colors[idx], linestyle=linestyles[idx], alpha=0.7, linewidth=1)
-
-
-    plt.ylabel("Discharge (m³/s)", fontsize=9)
-    plt.legend(title='Forecast',
-        frameon=False,
-        fontsize=8,
-        title_fontsize=9,
-        handlelength=1.2,
-        handletextpad=0.3,
-        labelspacing=0.05,
-        loc='upper left',
-        bbox_to_anchor=(1.02, 1.0),
-        ncols = 1)
-    
-    plt.xticks(fontsize=9)
-    plt.yticks(fontsize=9)
-    plt.ylim([0, 1750000])
-    plt.xlim([dates[mask].min() - pd.Timedelta(days=5), dates[mask].max() + pd.Timedelta(days=5)])
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
-    plt.tight_layout()
-    plt.show()
-
-
-plot_timeseries(
-    preds_dict=final_preds,
-    key_true="y_true",
-    key_pred="y_pred",
-    key_dates="dates",
-    label="Test",
-    date_start="2020-01-01",
-    date_end="2025-01-01"
-)
-
-
-
-plot_timeseries(
-    preds_dict=final_preds,
-    key_true="y_true",
-    key_pred="y_pred",
-    key_dates="dates",
-    label="Test",
-    date_start="2021-01-01",
-    date_end="2022-01-01"
-)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-colors = [cm.cm.haline(0.05), cm.cm.haline(0.2), cm.cm.haline(0.4), cm.cm.haline(0.55), cm.cm.haline(0.65), cm.cm.haline(0.75)]
-def plot_correlations(preds_dict, key_true, key_pred, key_dates, title, date_start, date_end):
-    fig, axes = plt.subplots(2, 3, figsize=(7, 5), sharex=True, sharey=True, dpi=400)
-    axes = axes.flatten()
-
-    all_true, all_pred = [], []
-    for i in forcast_horizons:
-        preds = preds_dict[i][0]
-        y_true = preds[key_true].ravel()
-        y_pred = preds[key_pred].ravel()
-        dates = pd.to_datetime(preds[key_dates])
-        mask = (dates >= date_start) & (dates < date_end)
-        all_true.append(y_true[mask])
-        all_pred.append(y_pred[mask])
-
-    all_true = np.concatenate(all_true)
-    all_pred = np.concatenate(all_pred)
-    min_val = min(all_true.min(), all_pred.min())
-    max_val = max(all_true.max(), all_pred.max())
-
-    for idx, i in enumerate(forcast_horizons):
-        preds = preds_dict[i][0]
-        y_true = preds[key_true].ravel()
-        y_pred = preds[key_pred].ravel()
-        dates = pd.to_datetime(preds[key_dates])
-        mask = (dates >= date_start) & (dates < date_end)
-        y_true_sub = y_true[mask]
-        y_pred_sub = y_pred[mask]
-
-        ax = axes[idx]
-        ax.scatter(y_true_sub, y_pred_sub, color=colors[idx], alpha=0.4, s=8)
-
-        slope, intercept, r_value, _, _ = linregress(y_true_sub, y_pred_sub)
-        rmse = np.sqrt(np.mean((y_true_sub - y_pred_sub) ** 2))
-        regression_line = slope * y_true_sub + intercept
-
-        ax.plot(y_true_sub, regression_line, color="black", linestyle=":", linewidth=1)
-        ax.set_title(f"{i} Day Horizon", fontsize=9)
-        ax.set_xlim(min_val, max_val+500000)
-        ax.set_ylim(min_val, max_val+500000)
-        ax.tick_params(labelsize=9)
-
-        eqn_text = f"$y={slope:.2f}x + {intercept:.2f}$\n$R={r_value:.2f}$"  #\nRMSE={rmse:.2f}
-        ax.text(0.05, 0.95, eqn_text, transform=ax.transAxes, fontsize=9,
-                verticalalignment="top", horizontalalignment="left")
-
-    fig.text(0.5, 0.02, "Measured discharge (m³/s)", ha="center", fontsize=11)
-    fig.text(0.02, 0.5, "Predicted discharge (m³/s)", va="center", rotation="vertical", fontsize=11)
-    plt.tight_layout(rect=[0.04, 0.04, 1, 1])
-    plt.show()
-
-
-plot_correlations(
-    preds_dict=final_preds,
-    key_true="y_true",
-    key_pred="y_pred",
-    key_dates="dates",
-    title="Test",
-    date_start="2020-01-01",
-    date_end="2025-01-01"
-)
-
-
-elapsed = (tm.time() - starttm) / 60
-hrs, mins = divmod(elapsed, 60)
-print(f"Time Taken: {int(hrs)} hours, {round(mins)} minutes")
+    return train_loader, test_loader, model, histories, best, input_channels
