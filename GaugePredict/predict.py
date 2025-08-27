@@ -150,15 +150,15 @@ class GaugeDataModel:
         X_mean = self.X_train.mean(axis=(0, 1), keepdims=True)
         X_std = self.X_train.std(axis=(0, 1), keepdims=True) + 1e-8
         self.X_train_normalized = (self.X_train - X_mean) / X_std
-        self.X_test_nomralized = (self.X_test - X_mean) / X_std
+        self.X_test_normalized = (self.X_test - X_mean) / X_std
         # Normalize Y
         self.scaler_y = StandardScaler()
         self.y_train_scaled = self.scaler_y.fit_transform(self.y_train)
         self.y_test_scaled = self.scaler_y.transform(self.y_test)
 
     def create_datasets(self):
-        self.train_dataset = DischargeDataset(self.X_train, self.y_train_scaled)
-        self.test_dataset = DischargeDataset(self.X_test, self.y_test_scaled)
+        self.train_dataset = DischargeDataset(self.X_train_normalized, self.y_train_scaled)
+        self.test_dataset = DischargeDataset(self.X_test_normalized, self.y_test_scaled)
 
     def setup(self):
         self.prepare_data()
