@@ -223,6 +223,68 @@ class CNN_LSTM(nn.Module):
 
         return out
 
+def nse_score(y_true, y_pred):
+    return 1 - np.sum((y_true - y_pred) ** 2) / np.sum((y_true - np.mean(y_true)) ** 2)
 
-# Training 
+def willmott_score(y_true, y_pred):
+    return 1 - np.sum((y_true - y_pred) ** 2) / np.sum((np.abs(y_pred - np.mean(y_true)) + np.abs(y_true - np.mean(y_true))) ** 2)
 
+class Trainer:
+
+    def __init__(self, model, datamodule, scaler_y, criterion, optimizer, device=None, evaluations = {'r2', r2_score,
+                                                                                                      'nse', nse_score,
+                                                                                                      'willmott', willmott_score}):
+        self.model = model
+        self.train_dataloader = datamodule.train_dataloader
+        self.test_dataloader = datamodule.test_dataloader
+        self.scaler_y = scaler_y
+        self.device = device if device else ('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model.to(self.device)
+        self.criterion = criterion
+        self.optimizer = optimizer
+        self.evaluations = evaluations
+
+    def train_epoch(self):
+        self.model.train()
+        running_loss = 0.0
+        for X_batch, y_batch in self.train_dataloader:
+            X_batch, y_batch = X_batch.to(self.device), y_batch.to(self.device)
+            self.optimizer.zero_grad()
+            outputs = self.model(X_batch)
+            loss = self.criterion(outputs, y_batch)
+            loss.backward()
+            self.optimizer.step()
+            running_loss += loss.item() * X_batch.size(0)
+        avg_loss = running_loss / len(self.train_dataloader.dataset)
+        return avg_loss
+
+    def evaluate(self, dataloader=None):
+        if dataloader is None:
+            dataloader = self.test_dataloader
+        self.model.eval()
+        all_preds, all_targets = [], []
+        with torch.no_grad():
+            for X_batch, y_batch in dataloader:
+                X_batch, y_batch = X_batch.to(self.device), y_batch.to(self.device)
+                outputs = self.model(X_batch)
+                all_preds.append(outputs.cpu().numpy())
+                all_targets.append(y_batch.cpu().numpy())
+        all_preds_rescaled = self.scaler_y.inverse_transform(all_preds)
+        all_targets_rescaled = self.scaler_y.inverse_transform(all_targets)
+        return all_targets_rescaled, all_preds_rescaled
+
+    def fit(self, num_epochs, evalulate=True):
+        history = {'train_loss': []}
+        if evalulate:
+            history.update({eval:[] for eval in self.evaluations.keys()})
+        for epoch in range(num_epochs):
+            self.model.train()
+            train_loss = self.train_epoch()
+            history['train_loss'].append(train_loss)
+            if evalulate:
+                targets, preds = self.evaluate()
+                for eval_name, eval_func in self.evaluations.items():
+                    score = eval_func(targets, preds)
+                    history[eval_name].append(score)
+            print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}")
+        return history
