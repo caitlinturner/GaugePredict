@@ -1,0 +1,64 @@
+#+title: Training Notebook
+
+#+begin_src jupyter-python
+import numpy as np
+import torch
+from predict import GaugeDataModel, Trainer, CNN_LSTM
+from sklearn.metrics import r2_score
+#+end_src
+
+#+begin_src jupyter-python
+data_files = [{'path': 'site_dict.json',
+               'conversion_factor': 0.0283168466,
+               'data_key': 'discharge'}]
+target_site = "07374000"
+start_date = "2010-01-01"
+end_date = "2025-01-01"
+tz="UTC"
+sequence_length = 90
+forecast_horizon = 15
+cutoff_date = np.datetime64('2020-01-01')
+na_filter = 0.25
+conversion_factor = 0.0283168466
+epochs = 100
+#+end_src
+
+#+begin_src jupyter-python
+gdm = GaugeDataModel(data_files,
+                     target_site,
+                     start_date,
+                     end_date,
+                     tz,
+                     sequence_length,
+                     forecast_horizon,
+                     cutoff_date,
+                     )
+#+begin_src jupyter-python
+gdm = GaugeDataModel(data_files,
+                     target_site,
+                     start_date,
+                     end_date,
+                     tz,
+                     sequence_length,
+                     forecast_horizon,
+                     cutoff_date,
+                     )
+#+end_src
+
+#+begin_src jupyter-python
+model = CNN_LSTM(gdm.train_dataset.input_channels, sequence_length)
+optimizer = torch.optim.Adam(model.parameters(), lr=1.15e-6, weight_decay=0.5e-4)
+criterion = torch.nn.MSELoss()
+#+end_src
+
+#+begin_src jupyter-python
+trainer = Trainer(model, gdm, gdm.scaler_y, criterion, optimizer)
+trainer.fit(epochs)
+#+end_src
+
+#+begin_src jupyter-python
+fig, axs = plt.subplots(1, len(trainer.history.keys()))
+for i, (key, values) in enumerate(trainer.history.items()):
+    axs[i].plot(values)
+    axs[i].set_title(key)
+#+end_src

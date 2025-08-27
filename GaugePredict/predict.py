@@ -231,9 +231,9 @@ def willmott_score(y_true, y_pred):
 
 class Trainer:
 
-    def __init__(self, model, datamodule, scaler_y, criterion, optimizer, device=None, evaluations = {'r2', r2_score,
-                                                                                                      'nse', nse_score,
-                                                                                                      'willmott', willmott_score}):
+    def __init__(self, model, datamodule, scaler_y, criterion, optimizer, device=None, evaluations = {'r2': r2_score,
+                                                                                                      'nse': nse_score,
+                                                                                                      'willmott': willmott_score}):
         self.model = model
         self.train_dataloader = datamodule.train_dataloader
         self.test_dataloader = datamodule.test_dataloader
@@ -269,8 +269,8 @@ class Trainer:
                 outputs = self.model(X_batch)
                 all_preds.append(outputs.cpu().numpy())
                 all_targets.append(y_batch.cpu().numpy())
-        all_preds_rescaled = self.scaler_y.inverse_transform(all_preds)
-        all_targets_rescaled = self.scaler_y.inverse_transform(all_targets)
+        all_preds_rescaled = self.scaler_y.inverse_transform(np.concatenate(all_preds))
+        all_targets_rescaled = self.scaler_y.inverse_transform(np.concatenate(all_targets))``
         return all_targets_rescaled, all_preds_rescaled
 
     def fit(self, num_epochs, evalulate=True):
@@ -287,4 +287,5 @@ class Trainer:
                     score = eval_func(targets, preds)
                     history[eval_name].append(score)
             print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}")
+        self.history = history
         return history
