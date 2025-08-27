@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from predict import GaugeDataModel, Trainer, CNN_LSTM
 from sklearn.metrics import r2_score
+from matplotlib.pyplot import plt
 #+end_src
 
 #+begin_src jupyter-python
@@ -33,16 +34,10 @@ gdm = GaugeDataModel(data_files,
                      forecast_horizon,
                      cutoff_date,
                      )
+#+end_src
+
 #+begin_src jupyter-python
-gdm = GaugeDataModel(data_files,
-                     target_site,
-                     start_date,
-                     end_date,
-                     tz,
-                     sequence_length,
-                     forecast_horizon,
-                     cutoff_date,
-                     )
+gdm.setup()
 #+end_src
 
 #+begin_src jupyter-python
@@ -57,8 +52,9 @@ trainer.fit(epochs)
 #+end_src
 
 #+begin_src jupyter-python
-fig, axs = plt.subplots(1, len(trainer.history.keys()))
+fig, axs = plt.subplots(1, len(trainer.history.keys()), figsize=(20,5))
 for i, (key, values) in enumerate(trainer.history.items()):
     axs[i].plot(values)
     axs[i].set_title(key)
+    axs[i].set_x_label('Epoch')
 #+end_src

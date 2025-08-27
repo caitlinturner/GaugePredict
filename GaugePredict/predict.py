@@ -270,7 +270,7 @@ class Trainer:
                 all_preds.append(outputs.cpu().numpy())
                 all_targets.append(y_batch.cpu().numpy())
         all_preds_rescaled = self.scaler_y.inverse_transform(np.concatenate(all_preds))
-        all_targets_rescaled = self.scaler_y.inverse_transform(np.concatenate(all_targets))``
+        all_targets_rescaled = self.scaler_y.inverse_transform(np.concatenate(all_targets))
         return all_targets_rescaled, all_preds_rescaled
 
     def fit(self, num_epochs, evalulate=True):
