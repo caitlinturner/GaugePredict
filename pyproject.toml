@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "GaugePredict"                     
+version = "0.1.0"                        
+description = "Hydrologic gauge prediction and spatial analysis"
+readme = "README.md"
+license = { text = "MIT" }               
+authors = [
+  { name="Caitlin R. R. Turner", email="cturn65@lsu.edu" }
+]
+dependencies = [
+  "pandas",
+  "geopandas",
+  "matplotlib",
+  "cmocean",
+  "contextily",
+  "dataretrieval"
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/GaugePredict"
+Issues = "https://github.com/yourusername/GaugePredict/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["GaugePredict*"]
