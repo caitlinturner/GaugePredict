@@ -1,1 +1,1 @@
-README.md
+GaugePredict is a tool for predicting flow at USGS Gauged Basins using a CNN-LSTM.  It contains utilities to download data, load it as a PyTorch dataset, and train it in a PyTorch model.  There is an example jupyter notebook for training.
