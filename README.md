@@ -33,8 +33,8 @@ This project is licensed under the MIT License
 ---
 
 ## Citing GaugePredict (NOT PEER REVIEWED YET)
-If you use **GaugePredict** in your research, please cite the software and associated paper.  
+If you use **GaugePredict** in your research, please cite the software and associated paper (comming soon...).  
 
 **Citation:**
 
-Turner, C. R. R., Martin, J., Hiatt, M. (2025). *GaugePredict: A Python package for predicting downstream gauges using a CNN-LSTM*. Journal of Open Source Software
+Comming soon...
