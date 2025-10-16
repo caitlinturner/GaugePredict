@@ -4,6 +4,7 @@
 import numpy as np
 import torch
 from predict import GaugeDataModel, Trainer, CNN_LSTM, get_sites_in_json
+from nwis_downloader import create_site_info_df, cluster_sites, get_site_subsamples
 from sklearn.metrics import r2_score
 from matplotlib.pyplot import plt
 #+end_src
@@ -22,18 +23,21 @@ cutoff_date = np.datetime64('2020-01-01')
 na_filter = 0.25
 conversion_factor = 0.0283168466
 epochs = 100
+cluster_columns = ['log_drain_area', 'dec_lat_va', 'dec_long_va']
+n_clusters = 50
 #+end_src
 
 #+begin_src jupyter-python
 all_sites = get_sites_in_json(data_files['path'])
 site_info = create_site_info_df(all_sites)
-clustered_sites = cluster_sites(site_info)
+site_info['log_drain_area'] = np.log10(site_info['drain_area_va'])
+clustered_sites = cluster_sites(site_info, cluster_columns, n_clusters)
 subsamples = get_site_subsamples(clusterd_sites)
 #+end_src
 
 #+begin_src jupyter-python
 for i, subsample in enumerate(subsamples):
-    gdm = GaugeDataModel(data_files,
+    Gdm = GaugeDataModel(data_files,
                      target_site,
                      start_date,
                      end_date,
