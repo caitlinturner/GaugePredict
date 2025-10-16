@@ -66,11 +66,19 @@ def load_target(target_site, full_index, start_date, end_date):
 
     return ts.reindex(full_index).interpolate(limit_direction="both").ffill().bfill()
 
-def load_data(data_files, full_index, conversion_factor=1.0):
+def get_sites_in_json(file_path):
+    with open(file_path, 'r') as f:
+        site_dict = json.load(f)
+    sites = []
+    for huc_sites in site_dict.values():
+        sites.extend(huc_sites.keys())
+    return sites
+
+def load_data(data_files, full_index, conversion_factor=1.0, site_filter=None):
         data = []
         for file in data_files:
             if type(file) is str:
-                Ext = Path(file).suffix.lower()
+                ext = Path(file).suffix.lower()
                 if ext in ['.csv', '.txt']:
                     ts = pd.read_csv(file, index_col=0, parse_dates=True)
                 elif ext in ['.json']:
@@ -82,6 +90,8 @@ def load_data(data_files, full_index, conversion_factor=1.0):
                 data_key = file['data_key']
                 with open(file_path, 'r') as f:
                     for huc_sites in json.load(f).values():
+                        if site_filter is not None:
+                            huc_sites = {k: v for k, v in huc_sites.items() if k in site_filter}
                         for site_no, info in huc_sites.items():
                             ts = pd.Series(info[data_key])
                             ts = remove_nans(ts)
@@ -97,8 +107,8 @@ def process_data(raw_timeseries, target_data, na_filter=0.25):
     for data in raw_timeseries:
         if data.isna().mean() <= na_filter:
             processed_data.append(data.interpolate(limit_direction="both").ffill().bfill().reindex_like(target_data))
-            processed_data.append(target_data)
-            processed_data.append(target_data.diff().bfill())  # Add difference of target discharge
+    processed_data.append(target_data)
+    processed_data.append(target_data.diff().bfill())  # Add difference of target discharge
     return np.stack([s.values for s in processed_data], axis=0)
 
 def generate_sequences(sequence_length, forcast_horizon, X_raw, y):
@@ -120,11 +130,12 @@ def generate_train_test_masks(full_index, sequence_length, y_seq, forecast_horiz
 
 class GaugeDataModel:
     """Class to handle data for the CNN-LSTM model."""
-    def __init__(self, data_files, target_site, start_date, end_date, tz, sequence_length, forcast_horizon, cutoff_date, batch_size=64, na_filter=0.25):
+    def __init__(self, data_files, target_site, start_date, end_date, tz, sequence_length, forcast_horizon, cutoff_date, batch_size=64, site_filter=None, na_filter=0.25):
         self.data_files = data_files
         self.target_site = target_site
         self.start_date = start_date
         self.end_date = end_date
+        self.site_filter = site_filter
         self.tz = tz
         self.sequence_length = sequence_length
         self.forcast_horizon = forcast_horizon
@@ -134,7 +145,7 @@ class GaugeDataModel:
         self.batch_size = batch_size
 
     def prepare_data(self):
-        raw_X_data = load_data(self.data_files, self.full_index)
+        raw_X_data = load_data(self.data_files, self.full_index, self.site_filter)
         target_discharge = load_target(self.target_site, self.full_index, self.start_date, self.end_date)
         self.processed_X_data = process_data(raw_X_data, target_discharge, na_filter=self.na_filter)
         self.y = target_discharge.values.copy()

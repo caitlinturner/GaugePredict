@@ -22,27 +22,34 @@ paramter_code = "00060"
 parameter = "discharge"
 data_dir = Path(f"cached_data_{parameter}")
 
-
+# in this block we get all the sites for each huc code along with some other site data
 ##  Find Sites in Zones
+##  create a pd.date range
 full_index = pd.date_range(start=start_date, end=end_date)
 data_dir.mkdir(exist_ok=True)
 huc_codes = huc_codes
 site_info_list = []
+# get site for each hic
 for huc_code in huc_codes:
     sites = nwis.what_sites(huc=huc_code, parameterCd=paramter_code)
     if isinstance(sites, tuple):
         sites = sites[0]
     sites['HUC'] = huc_code
+    # list of dataframes with row per site
     site_info_list.append(sites)
+# create a dataframe with site info (not the time series data)
+# concatenate the list of dataframes into a single dataframe
 site_info_df = pd.concat(site_info_list, ignore_index=True)
 site_info_df = site_info_df[['site_no', 'dec_lat_va', 'dec_long_va', 'HUC']].rename(
     columns={'dec_lat_va': 'Latitude', 'dec_long_va': 'Longitude'})
+# create datetime series, and number of days
 start_date = pd.to_datetime(start_date).tz_localize("UTC")
 end_date = pd.to_datetime(end_date).tz_localize("UTC")  
 expected_days = (pd.to_datetime(end_date) - pd.to_datetime(start_date)).days
 
 
 ## Make sure it has at least 95 percent data
+## grab the daily values for the site in the range, and count the number of valid days
 data_coverage = []
 parameter_data = {}
 for site_no in site_info_df['site_no']:
@@ -55,6 +62,7 @@ for site_no in site_info_df['site_no']:
 
     except Exception as e:
         print("Skipping site {site_no}")
+# add completeness percentage to the site info dataframe and then filter to ones that meet the threshold
 coverage_df = pd.DataFrame(data_coverage)
 coverage_df['completeness_%'] = 100 * coverage_df['valid_days'] / expected_days
 coverage_df = coverage_df.merge(site_info_df, on='site_no', how='left')
