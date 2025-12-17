@@ -6,8 +6,8 @@ An open-source GitHub package that forecasts downstream gauge data using a hybri
 - Combines a streamlined CNN–LSTM model and SHAP-selected gauges, enabling rapid forecasts on any standard machine with real-time capabilities
 - Comes with walkthrough notebooks that make setup, training, and forecasting easy to follow
 
-Updates:
-Training notebook coming soon! For now, there is an example script on calling functions for prediction.
+### Updates: 
+- Training notebook coming soon! For now, there is an example script on calling functions for prediction.
 ---
 
 ## Installation
