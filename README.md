@@ -1,11 +1,11 @@
-# GaugePredict (BETA TESTING)
-GaugePredict is a tool for predicting flow at USGS gauged basins using a CNN-LSTM.  
-It contains utilities to:
+<img width="12139" height="739" alt="image" src="https://github.com/user-attachments/assets/5e92395d-1c96-4550-99fb-68c59e441b4c" /># GaugePredict (BETA TESTING)
+An open-source GitHub package that forecasts downstream gauge data using a hybrid neural network model.
 
+- Creates extended-range forecasts of downstream gauge conditions (ex. water level and discharge), from daily to multi-week horizons
+- Ingests and preprocesses basin-wide USGS gauge data by automatically downloading, aligning, and cleaning multi-site time series defined by user-selected HUC regions
+- Combines a streamlined CNN–LSTM model and SHAP-selected gauges, enabling rapid forecasts on any standard machine with real-time capabilities
+- Comes with walkthrough notebooks that make setup, training, and forecasting easy to follow
 
-An example Jupyter notebook is included to demonstrate data downloading and management, model training, and model evaluation.
-
-While the examples focus on USGS gage data, this framework is designed to extend to other sources such as NOAA, USACE, or local municipalities.
 
 ---
 
