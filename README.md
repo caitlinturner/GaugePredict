@@ -1,4 +1,7 @@
 # GaugePredict (In Progress -- Full use comming soon)
+=======
+# GaugePredict
+>>>>>>> 2cedab8 (Updated to latest versions)
 GaugePredict is a tool for predicting flow at USGS gauged basins using a CNN-LSTM.  
 It contains utilities to:
 
@@ -33,8 +36,14 @@ This project is licensed under the MIT License
 ---
 
 ## Citing GaugePredict (NOT PEER REVIEWED YET)
+<<<<<<< HEAD
 If you use **GaugePredict** in your research, please cite the software and associated paper (comming soon...).  
 
 **Citation:**
 
 Comming soon...
+=======
+If you use **GaugePredict** in your research, please cite the software and associated paper.  
+
+**Citation:**
+>>>>>>> 2cedab8 (Updated to latest versions)

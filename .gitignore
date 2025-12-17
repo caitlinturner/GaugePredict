@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.dll
+
+# Packaging/build artifacts
+*.egg-info/
+dist/
+build/
+
+# Pytest
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data/results you do NOT want tracked
+examples/cached_data_discharge/
+examples/results/
+examples/shapefiles/
+
+# Optional: local outputs
+*.pt
+*.pkl

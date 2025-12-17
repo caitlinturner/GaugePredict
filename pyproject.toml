@@ -1,29 +1,32 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "GaugePredict"                     
-version = "0.1.0"                        
-description = "Hydrologic gauge prediction and spatial analysis"
+name = "GaugePredict"
+version = "0.1.0"
+description = "Basin-scale CNN–LSTM river forecasting utilities"
 readme = "README.md"
-license = { text = "MIT" }               
-authors = [
-  { name="Caitlin R. R. Turner", email="cturn65@lsu.edu" }
-]
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Caitlin Turner" }]
+
 dependencies = [
+  "numpy",
   "pandas",
-  "geopandas",
+  "torch",
+  "scikit-learn",
+  "shap",
+  "dataretrieval",
   "matplotlib",
   "cmocean",
+  "geopandas",
   "contextily",
-  "dataretrieval"
+  "psutil",
 ]
 
-[project.urls]
-Homepage = "https://github.com/yourusername/GaugePredict"
-Issues = "https://github.com/yourusername/GaugePredict/issues"
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["GaugePredict*"]
+where = ["src"]
