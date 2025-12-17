@@ -1,15 +1,7 @@
-# GaugePredict (In Progress -- Full use comming soon)
-=======
-# GaugePredict
->>>>>>> 2cedab8 (Updated to latest versions)
+# GaugePredict (BETA TESTING)
 GaugePredict is a tool for predicting flow at USGS gauged basins using a CNN-LSTM.  
 It contains utilities to:
 
-- Download hydrologic data  
-- Load data as a PyTorch dataset  
-- Train and evaluate CNN-LSTM models in PyTorch
-- Visualize results
-- Interpret model outputs
 
 An example Jupyter notebook is included to demonstrate data downloading and management, model training, and model evaluation.
 
