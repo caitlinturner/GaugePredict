@@ -7,7 +7,7 @@ An open-source GitHub package that forecasts downstream gauge data using a hybri
 - Comes with walkthrough notebooks that make setup, training, and forecasting easy to follow
 
 ### Updates: 
-- Training notebook coming soon! For now, there is an example script on calling functions for prediction.
+- (12/16/25) Training notebook coming soon! For now, there is an example script on calling functions for prediction.
 ---
 
 ## Installation
