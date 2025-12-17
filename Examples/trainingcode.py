@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 trainingcode.py
+Example use of training the CNN-LSTM Model for Water Level at the Army Corps of Engineers water level gauge
+Bonnet Carre Spillway @ Mississippi River (01280)
 """
 
 import json
@@ -93,7 +95,7 @@ hp_by_h = {
 
 
 # --------------------------------------------------------
-# Resolve paths relative to project root
+# Resolve paths
 # --------------------------------------------------------
 project_root = get_project_root(__file__, levels_up=1)
 
@@ -120,7 +122,7 @@ data_files = [{"path": json_path, "data_key": "parameter"}]
 
 
 # --------------------------------------------------------
-# Compute summary header
+# Compute summary
 # --------------------------------------------------------
 device = "cuda" if torch.cuda.is_available() else "cpu"
 hardware_info = get_hardware_info(device)
