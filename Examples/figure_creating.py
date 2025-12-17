@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-examples/figure_creating.py
+figure_creating.py
+Example of creating figures for the CNN-LSTM Bonnet Carre Spillway Example
 """
 
 from pathlib import Path
