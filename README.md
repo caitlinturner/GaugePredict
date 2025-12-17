@@ -19,7 +19,7 @@ An open-source GitHub package that forecasts downstream gauge data using a hybri
 ---
 
 ## Installation
-We welcome contributions! Please open an issue or pull request to get involved.
+We welcome contributions! Please email cturn65@lsu.edu or open an issue/pull request to get involved!
 
 ---
 
