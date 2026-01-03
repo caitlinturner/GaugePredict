@@ -38,8 +38,8 @@ from .routines import (
 def count_parameters(model):
     return int(sum(p.numel() for p in model.parameters() if p.requires_grad))
 
-
 def get_hardware_info(device_str):
+    # Get machine info for reporting.
     info = {
         "device": str(device_str),
         "system": platform.system(),
@@ -82,10 +82,6 @@ class SequenceDataset(Dataset):
 class GaugeDataModel:
     """
     Prepare arrays, splits, scalers, and DataLoaders.
-
-    Behavior:
-    - X standardized per-channel using training set statistics
-    - y standardized with StandardScaler (restores previous behavior)
     """
 
     def __init__(
@@ -153,7 +149,6 @@ class GaugeDataModel:
                 tz=self.tz,
             )
         else:
-            # downloader.load_target expects to_units like "metric"/"customary"
             target_series = load_target(
                 self.target_site,
                 self.full_index,
@@ -177,7 +172,7 @@ class GaugeDataModel:
             self.y,
         )
 
-        # predictor channels only (exclude the 2 target-derived channels)
+        # predictor channels only 
         n_pred_channels = int(self.processed_X_data.shape[0] - 2)
         site_meta = site_meta[:n_pred_channels]
 
@@ -218,7 +213,7 @@ class GaugeDataModel:
         self.X_train_norm = (self.X_train - X_mean) / X_std
         self.X_test_norm = (self.X_test - X_mean) / X_std
 
-        # restore y scaling (old behavior)
+        # restore y scaling 
         self.scaler_y = StandardScaler()
         ytr = np.asarray(self.y_train, dtype=float).reshape(-1, 1)
         yte = np.asarray(self.y_test, dtype=float).reshape(-1, 1)
@@ -774,8 +769,6 @@ def run_horizon(
     target_parameter_kind=None,
 ):
     # Normalize target_units for NWIS targets.
-    # Your pipeline uses target_units="m". That is fine for CSV targets,
-    # but NWIS downloader expects "metric" or "customary".
     target_units_nwis = target_units
     if not use_csv_target:
         tu = str(target_units).lower()
