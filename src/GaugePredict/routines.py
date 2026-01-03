@@ -91,8 +91,10 @@ def build_target_dates(full_index, sequence_length, forecast_horizon, n_samples)
 
 
 def generate_train_test_masks(full_index, sequence_length, y_seq, forecast_horizon, cutoff_date):
-    target_dates = full_index[int(sequence_length) : len(full_index) - int(forecast_horizon) + 1]
-    target_dates = np.asarray(target_dates[: len(y_seq)])
+    T = int(sequence_length)
+    H = int(forecast_horizon)
+    start = T + H - 1
+    target_dates = np.asarray(full_index[start : start + int(len(y_seq))])
     cutoff = pd.Timestamp(cutoff_date)
     if cutoff.tz is None:
         cutoff = cutoff.tz_localize("UTC")
@@ -173,14 +175,6 @@ def load_data(
 ):
     """
     Load predictor time series from cached JSON(s).
-
-    Accepts both JSON layouts:
-      A) {huc: {site_no: payload}}
-      B) {site_no: payload}
-
-    payload must contain:
-      - latitude/longitude (optional but used for meta)
-      - data_key (e.g., "parameter"): { "YYYY-MM-DD": value, ... }
     """
     if not isinstance(data_files, (list, tuple)) or len(data_files) == 0:
         raise ValueError("data_files must be a non-empty list of dicts with keys {'path','data_key'}")
@@ -259,8 +253,8 @@ def load_data(
         if not isinstance(obj, dict) or len(obj) == 0:
             continue
 
-        # Always attempt BOTH interpretations:
-        # 1) top-level is sites (layout B)
+        
+        # 1) top-level is sites
         for site_no, payload in obj.items():
             _try_add_site(
                 site_no,
@@ -270,7 +264,7 @@ def load_data(
                 source_path=json_path,
             )
 
-        # 2) top-level is HUCs (layout A)
+        # 2) top-level is HUCs
         for huc, maybe_sites in obj.items():
             if not isinstance(maybe_sites, dict):
                 continue
@@ -285,11 +279,7 @@ def load_data(
 
     if not all_series:
         raise RuntimeError(
-            "No predictor series loaded.\n"
-            "This usually means one of these:\n"
-            "  - data_key is wrong (your JSON does not contain that key)\n"
-            "  - allowed_sites filtered everything\n"
-            "  - JSON has no date->value dicts in the expected place\n"
+            "No predictor series loaded"
         )
 
     X = np.asarray(all_series, dtype=np.float32)  # [C, T]
@@ -337,13 +327,6 @@ def load_target_csv(csv_path, full_index, *, date_col="date", value_col="value",
 
 def process_data(raw_X_data, target_series, *, smooth_window_days=7):
     """
-    Build model-ready channels by appending 2 target-derived channels:
-      - target_smoothed
-      - target_diff
-
-    raw_X_data: [C, T]
-    target_series: Series aligned to full_index (UTC)
-    returns: processed_X_data [C+2, T]
     """
     y = pd.to_numeric(pd.Series(target_series), errors="coerce").to_numpy(dtype=float)
     if y.ndim != 1:
