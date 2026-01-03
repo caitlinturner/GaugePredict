@@ -26,12 +26,6 @@ def _rank_parameter_col(name, preference):
 
 
 def _pick_parameter_col(df, parameter_code, *, parameter_kind=None):
-    """
-    Pick the preferred daily-values column for a given parameter code.
-
-    parameter_kind: optional hint ("discharge", "water_level", "precipitation")
-    used to tweak preference ordering (sum/total for precip, mean/value otherwise).
-    """
     matches = [c for c in df.columns if str(parameter_code) in str(c)]
     if not matches:
         return None
@@ -83,8 +77,7 @@ def _as_utc_daily_index(full_index, *, tz="UTC"):
 def _convert_units_from_parameter_code(ts, parameter_code, *, to_units="metric"):
     """
     Convert common USGS DV units to metric.
-
-    Expected native DV units:
+    Expected DV units:
       - 00060 discharge: cfs -> m^3/s
       - 00065 gage height / stage: ft -> m
       - 00045 precipitation: inches -> mm
@@ -130,26 +123,6 @@ def load_target(
     """
     Fetch NWIS DV for (site, parameter_code), align to full_index (daily),
     fill gaps, return tz-aware UTC series.
-
-    Parameters
-    ----------
-    target_site : str
-    full_index : DatetimeIndex
-        The desired daily index. Can be naive or tz-aware.
-    start_date, end_date : str
-        YYYY-MM-DD bounds used for NWIS retrieval.
-    parameter_code : str
-        USGS parameter code (e.g., "00060", "00065", "00045", "30210"...).
-    to_units : {"metric","native",None}
-    tz : str
-        Assumed timezone if NWIS returns naive timestamps (rare).
-    parameter_kind : str or None
-        Optional hint for column selection.
-
-    Returns
-    -------
-    pd.Series
-        Indexed by full_index (converted to UTC), filled, optionally unit-converted.
     """
     target_site = str(target_site)
     parameter_code = str(parameter_code)
