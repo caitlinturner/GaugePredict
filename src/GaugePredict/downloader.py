@@ -33,7 +33,7 @@ def _rank_parameter_col(name, preference):
             return i
     return len(preference)
 
-
+    
 def _pick_parameter_col(df, parameter_code, *, parameter_kind=None):
     """
     Select the preferred NWIS DV column corresponding to a parameter code.
