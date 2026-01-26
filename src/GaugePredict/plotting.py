@@ -1434,6 +1434,8 @@ def plot_training_and_timeseries(
         zorder=10,
     )
 
+    
+
     if site is not None:
         fig.text(0.125, 0.89, f"Training data: {site}", fontsize=8)
         fig.text(0.125, 0.45, f"Test data: {site}", fontsize=8)
