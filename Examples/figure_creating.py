@@ -25,7 +25,7 @@ from GaugePredict.plotting import (
 target_site = "01280"
 run_name = "function_test"
 target_variable = "discharge"
-horizons = [1, 3, 5, 10, 15, 20, 30]
+horizons = [1, 3]
 site_label = "Bonnet Carré Spillway (USACE)"
 save_fig = True
 
@@ -34,7 +34,7 @@ examples_dir = resolve_under_project(project_root, Path("examples"))
 results_base_dir = examples_dir / "results"
 
 results_root = results_base_dir / f"{target_site}_{run_name}"
-fig_agu_path = results_root / "fig_training_test_agu.png"
+fig_path = results_root / "fig_training_test_agu.png"
 
 results = load_saved_runs(results_root, horizons, verbose=True)
 
@@ -42,7 +42,7 @@ date_index, y_true, pred_df = build_aligned_test_series(results, horizons)
 colors_h, linestyles_h = get_horizon_styles(horizons)
 parameter_label = parameter_label_from_target(target_variable)
 
-fig_agu = plot_training_and_timeseries(
+fig1, ax1 = plot_training_and_timeseries(
     results=results,
     horizons=horizons,
     date_index=date_index,
@@ -57,7 +57,7 @@ fig_agu = plot_training_and_timeseries(
 
 if save_fig:
     results_root.mkdir(parents=True, exist_ok=True)
-    fig_agu.savefig(fig_agu_path, dpi=600, bbox_inches="tight")
+    fig1.savefig(fig_path, dpi=200, bbox_inches="tight")
 
 plt.show()
 
@@ -77,15 +77,17 @@ examples_dir = resolve_under_project(project_root, Path("examples"))
 results_dir = examples_dir / "results"
 full_shap_root = results_dir / shap_run_name
 
-horizons = [1, 5, 10, 15, 20, 30]
+horizons = [1, 3]
 
+# currently hardcoded from downsampled model
 n_shap_by_h = {
-    1: 34,
-    5: 45,
-    10: 40,
-    15: 45,
-    20: 55,
-    30: 75,
+    1: 5,
+    3: 9,
+    5: 15,
+    10: 50,
+    15: 90,
+    20: 90,
+    30: 120,
 }
 
 states_fp = examples_dir / "shapefiles" / "US_STATES" / "tl_2023_us_state.shp"
