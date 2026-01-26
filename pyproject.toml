@@ -11,22 +11,50 @@ requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Caitlin Turner" }]
 
+# Runtime dependencies 
 dependencies = [
-  "numpy",
-  "pandas",
-  "torch",
-  "scikit-learn",
-  "shap",
-  "dataretrieval",
-  "matplotlib",
-  "cmocean",
-  "geopandas",
-  "contextily",
-  "psutil",
+  "numpy>=1.23",
+  "pandas>=2.0",
+  "scipy>=1.10",
+
+  "matplotlib>=3.7",
+  "cmocean>=3.0",
+
+  "torch>=2.0",
+  "scikit-learn>=1.3",
+
+  "shap>=0.43",
+  "numba>=0.57",
+  "tqdm>=4.66",
+
+  "dataretrieval>=1.0",
+  "psutil>=5.9",
+
+  "geopandas>=0.14",
+  "contextily>=1.4",
+  "pyproj>=3.6",
+  "shapely>=2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/caitlinturner/GaugePredict"
+Repository = "https://github.com/caitlinturner/GaugePredict"
+Issues = "https://github.com/caitlinturner/GaugePredict/issues"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "build>=1.2",
+  "twine>=5.0",
+  "ruff>=0.5",
+  "black>=24.0",
+  "nbmake>=1.5",
 ]
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
