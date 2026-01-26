@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "GaugePredict"
 version = "0.1.0"
-description = "Basin-scale CNN–LSTM river forecasting utilities"
+description = "An open-source package that forecasts downstream gauge conditions using basin-scale data and a hybrid neural network model"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Caitlin Turner" }]
+authors = [{ name = "Caitlin R. R. Turner, Jo Martin, Matthew Hiatt" }]
 
 # Runtime dependencies 
 dependencies = [
