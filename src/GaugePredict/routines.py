@@ -152,7 +152,9 @@ def load_hucs_3857(base_dir):
         warnings.warn("HUC GeoDataFrame has no CRS; assuming EPSG:4326 before projecting to 3857")
         out = out.set_crs(4326)
 
-    return out if out.crs.to_epsg() == 3857 else out.to_crs(3857)
+    if out.crs.to_epsg() == 3857:
+        return out
+    return out.to_crs(3857)
 
 
 # =============================================================================
@@ -260,7 +262,6 @@ def generate_train_test_masks(full_index, sequence_length, y_seq, forecast_horiz
     H = int(forecast_horizon)
     start = T + H - 1
 
-    # Ensure target dates and cutoff live in the same tz space (UTC).
     full_utc = _as_utc_daily_index(full_index, tz=tz)
     target_dates = np.asarray(full_utc[start : start + int(len(y_seq))])
 
@@ -315,12 +316,17 @@ def _normalize_site_no(site_no):
     return site_no_raw, site_no_norm
 
 
-# Older duplicate names kept so imports do not break.
 def _normalize_site_id(site_no):
+    """
+    Backward compatible alias: normalize a site identifier to a clean string.
+    """
     return str(site_no).strip()
 
 
 def _normalize_site_id_norm(site_no):
+    """
+    Backward compatible alias: normalize a site identifier with leading zeros removed.
+    """
     return str(site_no).strip().lstrip("0")
 
 
@@ -409,7 +415,6 @@ def load_data(
         s = s.replace([-99999, -999999, -9999, -999], np.nan)
         s = s.mask(s <= -1e4, np.nan)
 
-        # Interpret naive timestamps in the configured local tz, then convert to UTC.
         if s.index.tz is None:
             s.index = s.index.tz_localize(tz)
         s.index = s.index.tz_convert("UTC")
@@ -464,7 +469,7 @@ def load_data(
             "  - JSON is not layout B: expected {site_no: payload}\n"
         )
 
-    X = np.asarray(all_series, dtype=np.float32)  # [C, T]
+    X = np.asarray(all_series, dtype=np.float32)
     if X.ndim != 2 or X.shape[1] != len(full_utc):
         raise RuntimeError(f"Predictor array has wrong shape {X.shape}; expected [C, {len(full_utc)}]")
 
@@ -489,17 +494,18 @@ def load_target_csv(csv_path, full_index, *, date_col="date", value_col="value",
         raise ValueError(f"Target CSV missing value_col='{value_col}'")
 
     d = pd.to_datetime(df[date_col], errors="coerce")
-    d = d[~d.isna()]
-    if d.empty:
+    valid = ~d.isna()
+    if not bool(valid.any()):
         raise ValueError("Target CSV has no parseable dates")
 
-    # Make tz-aware, then convert to UTC.
+    df = df.loc[valid].copy()
+    d = pd.to_datetime(df[date_col], errors="coerce")
+
     if getattr(d.dt, "tz", None) is None:
         d = d.dt.tz_localize(tz)
     d = d.dt.tz_convert("UTC")
 
-    # Re-align values to the filtered date index length if we dropped NaT rows.
-    v = pd.to_numeric(df.loc[d.index, value_col], errors="coerce").to_numpy()
+    v = pd.to_numeric(df[value_col], errors="coerce").to_numpy()
     s = pd.Series(v, index=d).sort_index()
 
     full_utc = _as_utc_daily_index(full_index, tz=tz)
@@ -561,7 +567,7 @@ def generate_sequences(sequence_length, forecast_horizon, x_raw, y):
         raise ValueError("Not enough data to build sequences for the requested sequence_length and forecast_horizon")
 
     for i in range(n):
-        x_seq.append(x_raw[:, i : i + T].T)     # [C, time] -> [T, C]
+        x_seq.append(x_raw[:, i : i + T].T)
         y_seq.append(y[i + T + H - 1])
 
     return (
