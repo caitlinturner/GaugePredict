@@ -3,7 +3,6 @@
 routines.py
 
 Core utilities for GaugePredict functions downloader.py, predict.py, and plotting.py.
-
 """
 
 from __future__ import division, print_function, absolute_import
@@ -16,10 +15,10 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 
+
 # =============================================================================
 # Project paths and run configuration
 # =============================================================================
-
 def get_project_root(file_path, levels_up=1):
     """
     Resolve a project root directory by walking up parent folders.
@@ -94,21 +93,12 @@ def load_run_config(run_root):
 # =============================================================================
 # Geospatial Boundaries
 # =============================================================================
-
 def load_hucs_3857(base_dir):
     """
     Load HUC2 watershed boundary shapefiles and project to EPSG:3857.
-    Future updates will include other HUC code formats
 
     Expected layout under base_dir:
         HUC??/WBDHU2.shp
-
-    For each discovered "HUC??" folder, the shapefile is read and standardized:
-    - Column names are lower-cased
-    - A "huc2" column is ensured (from "huc02" if needed, otherwise filled from folder code)
-    - huc2 values are zero-padded to 2 characters
-    - All features are concatenated across HUC codes
-    - Output is projected to EPSG:3857 if needed
 
     **Inputs** :
 
@@ -125,7 +115,8 @@ def load_hucs_3857(base_dir):
         FileNotFoundError
             If no matching shapefiles are found, or none could be loaded successfully.
     """
-    hits = list(Path(base_dir).glob("HUC??/WBDHU2.shp"))
+    base_dir = Path(base_dir)
+    hits = list(base_dir.glob("HUC??/WBDHU2.shp"))
     if not hits:
         raise FileNotFoundError(f"No HUC shapefiles found under {base_dir}")
 
@@ -133,12 +124,16 @@ def load_hucs_3857(base_dir):
     gdfs = []
 
     for code in codes:
-        shp = Path(base_dir) / f"HUC{code}" / "WBDHU2.shp"
+        shp = base_dir / f"HUC{code}" / "WBDHU2.shp"
         if not shp.exists():
             warnings.warn(f"Missing {shp}, skipping")
             continue
 
-        df = gpd.read_file(shp).rename(columns=str.lower)
+        try:
+            df = gpd.read_file(shp).rename(columns=str.lower)
+        except Exception as e:
+            warnings.warn(f"Failed to read {shp}: {e}")
+            continue
 
         if "huc2" not in df.columns:
             if "huc02" in df.columns:
@@ -152,17 +147,21 @@ def load_hucs_3857(base_dir):
     if not gdfs:
         raise FileNotFoundError("No valid HUC shapefiles after scanning")
 
-    out = pd.concat(gdfs, ignore_index=True)
-    return out if (out.crs and out.crs.to_epsg() == 3857) else out.to_crs(3857)
+    out = gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True), crs=gdfs[0].crs)
+    if out.crs is None:
+        warnings.warn("HUC GeoDataFrame has no CRS; assuming EPSG:4326 before projecting to 3857")
+        out = out.set_crs(4326)
+
+    return out if out.crs.to_epsg() == 3857 else out.to_crs(3857)
 
 
 # =============================================================================
 # Time index utilities
 # =============================================================================
-
 def generate_full_index(start_date, end_date, *, localize=True, tz="UTC"):
     """
     Generate a daily date range.
+
     If localize=True, returns a timezone-aware DatetimeIndex in timezone `tz`.
     If localize=False, returns a naive DatetimeIndex.
 
@@ -196,8 +195,7 @@ def build_target_dates(full_index, sequence_length, forecast_horizon, n_samples)
     Build the target date vector aligned to generated supervised sequences.
 
     For a sequence length T and forecast horizon H, the first target corresponds
-    to full_index[T + H - 1]. This helper returns a date array of length n_samples
-    starting at that offset.
+    to full_index[T + H - 1].
 
     **Inputs** :
 
@@ -222,13 +220,13 @@ def build_target_dates(full_index, sequence_length, forecast_horizon, n_samples)
     return np.asarray(full_index[start : start + int(n_samples)])
 
 
-def generate_train_test_masks(full_index, sequence_length, y_seq, forecast_horizon, cutoff_date):
+def generate_train_test_masks(full_index, sequence_length, y_seq, forecast_horizon, cutoff_date, tz="UTC"):
     """
     Generate boolean masks for train/test split based on a cutoff target date.
-    The split is performed on target dates (not on input window start dates).
-    A sample is assigned to train if its target date is strictly before cutoff,
-    and to test otherwise.
 
+    Split is on target dates:
+    - train if target_date < cutoff
+    - test otherwise
 
     **Inputs** :
 
@@ -247,6 +245,9 @@ def generate_train_test_masks(full_index, sequence_length, y_seq, forecast_horiz
         cutoff_date : 'str or datetime-like'
             Cutoff date for splitting.
 
+        tz : 'str'
+            Timezone assumption if full_index and cutoff_date are naive.
+
     **Outputs** :
 
         train_mask : 'numpy.ndarray (bool)'
@@ -258,40 +259,29 @@ def generate_train_test_masks(full_index, sequence_length, y_seq, forecast_horiz
     T = int(sequence_length)
     H = int(forecast_horizon)
     start = T + H - 1
-    target_dates = np.asarray(full_index[start : start + int(len(y_seq))])
+
+    # Ensure target dates and cutoff live in the same tz space (UTC).
+    full_utc = _as_utc_daily_index(full_index, tz=tz)
+    target_dates = np.asarray(full_utc[start : start + int(len(y_seq))])
+
     cutoff = pd.Timestamp(cutoff_date)
     if cutoff.tz is None:
-        cutoff = cutoff.tz_localize("UTC")
-    else:
-        cutoff = cutoff.tz_convert("UTC")
+        cutoff = cutoff.tz_localize(tz)
+    cutoff = cutoff.tz_convert("UTC")
+
     train_mask = target_dates < cutoff
     test_mask = target_dates >= cutoff
     return train_mask, test_mask
 
 
 # =============================================================================
-# Utils
+# Timezone helpers (kept for backward compatibility)
 # =============================================================================
-# working to resolve duplicate functions. Have not deleted yet so code does not break. 
 def _to_utc_index(idx, *, tz="UTC"):
     """
     Convert an index-like object to a tz-aware UTC DatetimeIndex.
 
-    If `idx` is timezone-naive, it is localized to `tz` first, then converted
-    to UTC.
-
-    **Inputs** :
-
-        idx : 'array-like of datetime-like'
-            Index values convertible by pandas.to_datetime().
-
-        tz : 'str'
-            Timezone to assume if timestamps are naive.
-
-    **Outputs** :
-
-        idx_utc : 'pandas.DatetimeIndex'
-            Timezone-aware UTC DatetimeIndex.
+    If timestamps are naive, localize to `tz` first, then convert to UTC.
     """
     idx = pd.to_datetime(idx)
     if getattr(idx, "tz", None) is None:
@@ -302,24 +292,36 @@ def _to_utc_index(idx, *, tz="UTC"):
 def _full_index_utc(full_index, *, tz="UTC"):
     """
     Convert a full_index to a tz-aware UTC DatetimeIndex.
-
-    **Inputs** :
-
-        full_index : 'array-like of datetime-like'
-            Daily index (naive or tz-aware).
-
-        tz : 'str'
-            Timezone to assume if full_index is naive.
-
-    **Outputs** :
-
-        idx_utc : 'pandas.DatetimeIndex'
-            UTC index aligned to input day stamps.
     """
-    idx = pd.to_datetime(full_index)
-    if getattr(idx, "tz", None) is None:
+    return _to_utc_index(pd.to_datetime(full_index), tz=tz)
+
+
+def _as_utc_daily_index(full_index, tz="UTC"):
+    """
+    Convert a daily full_index to a tz-aware UTC DatetimeIndex.
+    """
+    idx = pd.DatetimeIndex(full_index)
+    if idx.tz is None:
         idx = idx.tz_localize(tz)
     return idx.tz_convert("UTC")
+
+
+def _normalize_site_no(site_no):
+    """
+    Return both raw and normalized site identifiers.
+    """
+    site_no_raw = str(site_no).strip()
+    site_no_norm = site_no_raw.lstrip("0")
+    return site_no_raw, site_no_norm
+
+
+# Older duplicate names kept so imports do not break.
+def _normalize_site_id(site_no):
+    return str(site_no).strip()
+
+
+def _normalize_site_id_norm(site_no):
+    return str(site_no).strip().lstrip("0")
 
 
 def _series_from_parameter_dict(param_dict, *, tz="UTC"):
@@ -327,123 +329,26 @@ def _series_from_parameter_dict(param_dict, *, tz="UTC"):
     Convert a date-keyed dictionary to a daily UTC pandas.Series.
 
     Input format:
-        param_dict = {"YYYY-MM-DD": value, ...}
-
-    The date strings are interpreted as midnight timestamps, localized to `tz`
-    if naive, then converted to UTC.
-
-    **Inputs** :
-
-        param_dict : 'dict'
-            Mapping of date string -> numeric value.
-
-        tz : 'str'
-            Timezone to assume for naive dates.
-
-    **Outputs** :
-
-        s : 'pandas.Series'
-            Numeric series indexed by tz-aware UTC timestamps, sorted by time.
-            Returns an empty float series if param_dict is empty or invalid.
+        {"YYYY-MM-DD": value, ...}
     """
     if not isinstance(param_dict, dict) or len(param_dict) == 0:
         return pd.Series(dtype=float)
 
-    # keys are dates, treat as midnight
-    dt = pd.to_datetime(list(param_dict.keys()))
-    s = pd.Series(list(param_dict.values()), index=dt)
+    dt = pd.to_datetime(list(param_dict.keys()), errors="coerce")
+    vals = list(param_dict.values())
+    s = pd.Series(vals, index=dt)
+    s = s[~s.index.isna()]
+    if s.empty:
+        return pd.Series(dtype=float)
+
     s.index = _to_utc_index(s.index, tz=tz)
     s = pd.to_numeric(s, errors="coerce")
     return s.sort_index()
 
 
-def _normalize_site_id(site_no):
-    """
-    Normalize a site identifier to a clean string (whitespace stripped).
-
-    **Inputs** :
-
-        site_no : 'str or int'
-            Site identifier.
-
-    **Outputs** :
-
-        site_id : 'str'
-            Stripped site id.
-    """
-    return str(site_no).strip()
-
-
-def _normalize_site_id_norm(site_no):
-    """
-    Normalize a site identifier to a "normalized" form with leading zeros removed.
-
-    **Inputs** :
-
-        site_no : 'str or int'
-            Site identifier.
-
-    **Outputs** :
-
-        site_id_norm : 'str'
-            Stripped site id with leading zeros removed.
-    """
-    return str(site_no).strip().lstrip("0")
-
-
-
-
-
-def _as_utc_daily_index(full_index, tz="UTC"):
-    """
-    Convert a daily full_index to a tz-aware UTC DatetimeIndex.
-
-    **Inputs** :
-
-        full_index : 'array-like of datetime-like'
-            Daily index values.
-
-        tz : 'str'
-            Timezone to assume if full_index is timezone-naive.
-
-    **Outputs** :
-
-        idx_utc : 'pandas.DatetimeIndex'
-            Daily index in UTC.
-    """
-    idx = pd.DatetimeIndex(full_index)
-    if idx.tz is None:
-        idx = idx.tz_localize(tz)
-    else:
-        idx = idx.tz_convert(tz)
-    return idx.tz_convert("UTC")
-
-
-def _normalize_site_no(site_no):
-    """
-    Return both raw and normalized site identifiers.
-
-    **Inputs** :
-
-        site_no : 'str or int'
-            Site identifier.
-
-    **Outputs** :
-
-        site_no_raw : 'str'
-            String representation of site id.
-
-        site_no_norm : 'str'
-            Normalized site id (leading zeros removed).
-    """
-    site_no_raw = str(site_no)
-    site_no_norm = site_no_raw.lstrip("0")
-    return site_no_raw, site_no_norm
-
 # =============================================================================
 # Predictor Loading
 # =============================================================================
-
 def load_data(
     data_files,
     full_index,
@@ -458,64 +363,11 @@ def load_data(
     Expected JSON layout (Layout B only):
         {site_no: payload, ...}
 
-    Each payload is expected to contain a date-keyed mapping under `data_key`,
-    typically "parameter":
+    Each payload must contain a date-keyed mapping under `data_key`, typically "parameter":
         payload[data_key] = {"YYYY-MM-DD": value, ...}
-
-    This loader:
-    - Reindexes each series to `full_index` (daily) converted to UTC
-    - Converts common sentinel placeholders (e.g., -99999) to NaN
-    - Optionally fills gaps via interpolation + forward fill
-    - Returns a stacked predictor array X with shape [C, T]
-      (C = number of loaded sites/channels, T = len(full_index))
-    - Returns a parallel metadata list (one dict per channel)
-
-    Site filtering:
-    - If allow_site_ids_norm is provided, only sites whose normalized id
-      (leading zeros removed) are kept.
-
-    **Inputs** :
-
-        data_files : 'list of dict'
-            Each dict must contain:
-              - "path": JSON file path
-              - optional "data_key": key within payload containing date:value dict
-            Example: {"path": "predictors.json", "data_key": "parameter"}
-
-        full_index : 'pandas.DatetimeIndex or array-like'
-            Desired daily index used for reindexing. Can be tz-naive or tz-aware.
-
-        allow_site_ids_norm : 'list of str or None'
-            Optional whitelist of site ids (leading zeros ignored).
-
-        tz : 'str'
-            Timezone used when localizing naive full_index before converting to UTC.
-
-        fill : 'bool'
-            If True, apply interpolation (both directions) and forward fill after reindexing.
-
-    **Outputs** :
-
-        X : '2D numpy.ndarray (float32)'
-            Predictor stack with shape [C, T].
-
-        meta : 'list of dict'
-            One dict per channel with keys:
-              - site_no, site_no_norm, lat, lon, huc, data_key, source_path
-
-    **Raises** :
-
-        ValueError
-            If data_files is not a non-empty list.
-
-        FileNotFoundError
-            If any referenced predictor JSON path does not exist.
-
-        RuntimeError
-            If no valid series are loaded, or if the stacked array has unexpected shape.
     """
     if not isinstance(data_files, (list, tuple)) or len(data_files) == 0:
-        raise ValueError("data_files must be a non-empty list of dicts with keys {'path','data_key'}")
+        raise ValueError("data_files must be a non-empty list of dicts with keys {'path', optional 'data_key'}")
 
     allowed = None
     if allow_site_ids_norm is not None:
@@ -526,15 +378,17 @@ def load_data(
     all_series = []
     all_meta = []
 
-    def _try_add_site(site_no, payload, *, data_key=None, source_path=None):
-        """
-        Internal helper to validate and add one site's series to the predictor stack.
-        """
+    def _coerce_float(x):
+        try:
+            return float(pd.to_numeric(x, errors="coerce"))
+        except Exception:
+            return np.nan
+
+    def _try_add_site(site_no, payload, *, data_key, source_path):
         if not isinstance(payload, dict):
             return
 
         site_no_raw, site_no_norm = _normalize_site_no(site_no)
-
         if allowed is not None and site_no_norm not in allowed:
             return
 
@@ -555,35 +409,37 @@ def load_data(
         s = s.replace([-99999, -999999, -9999, -999], np.nan)
         s = s.mask(s <= -1e4, np.nan)
 
+        # Interpret naive timestamps in the configured local tz, then convert to UTC.
         if s.index.tz is None:
-            s.index = s.index.tz_localize("UTC")
-        else:
-            s.index = s.index.tz_convert("UTC")
+            s.index = s.index.tz_localize(tz)
+        s.index = s.index.tz_convert("UTC")
 
         s = s.sort_index().reindex(full_utc)
 
         if fill:
-            s = s.interpolate(limit_direction="both").ffill()
+            s = s.interpolate(limit_direction="both").ffill().bfill()
 
         arr = s.to_numpy(dtype=float)
         if not np.isfinite(arr).any():
             return
 
         all_series.append(arr.astype(np.float32))
-
         all_meta.append(
             {
                 "site_no": site_no_raw,
                 "site_no_norm": site_no_norm,
-                "lat": float(lat) if lat is not None else np.nan,
-                "lon": float(lon) if lon is not None else np.nan,
-                "huc": None,
+                "lat": _coerce_float(lat),
+                "lon": _coerce_float(lon),
+                "huc": payload.get("huc", None),
                 "data_key": str(data_key),
-                "source_path": str(source_path) if source_path is not None else None,
+                "source_path": str(source_path),
             }
         )
 
     for spec in data_files:
+        if not isinstance(spec, dict) or "path" not in spec:
+            raise ValueError("Each entry in data_files must be a dict containing at least {'path': ...}")
+
         json_path = Path(spec["path"])
         data_key = str(spec.get("data_key", "parameter"))
 
@@ -597,17 +453,12 @@ def load_data(
             continue
 
         for site_no, payload in obj.items():
-            _try_add_site(
-                site_no,
-                payload,
-                data_key=data_key,
-                source_path=json_path,
-            )
+            _try_add_site(site_no, payload, data_key=data_key, source_path=json_path)
 
     if not all_series:
         raise RuntimeError(
             "No predictor series loaded.\n"
-            "This usually means one of these:\n"
+            "Common causes:\n"
             "  - data_key is wrong (your JSON does not contain that key)\n"
             "  - allowed_sites filtered everything\n"
             "  - JSON is not layout B: expected {site_no: payload}\n"
@@ -620,55 +471,12 @@ def load_data(
     return X, all_meta
 
 
-
 # =============================================================================
-# Target CSV loading 
+# Target CSV loading
 # =============================================================================
-
 def load_target_csv(csv_path, full_index, *, date_col="date", value_col="value", tz="UTC", fill=True):
     """
     Load a daily target time series from a CSV file and align to full_index.
-
-    The CSV is expected to contain at least:
-    - a date column (date_col)
-    - a value column (value_col)
-
-    Dates are parsed with pandas.to_datetime(). If timezone-naive, they are
-    localized to `tz` and then converted to UTC. The series is then reindexed
-    to full_index converted to UTC.
-
-    **Inputs** :
-
-        csv_path : 'str or pathlib.Path'
-            Path to the target CSV file.
-
-        full_index : 'pandas.DatetimeIndex or array-like'
-            Desired daily index for alignment.
-
-        date_col : 'str'
-            Column name containing date stamps.
-
-        value_col : 'str'
-            Column name containing numeric values.
-
-        tz : 'str'
-            Timezone to assume for naive input dates and full_index.
-
-        fill : 'bool'
-            If True, fill gaps by interpolation (both directions) and forward fill.
-
-    **Outputs** :
-
-        s : 'pandas.Series'
-            Daily series indexed by tz-aware UTC timestamps, aligned to full_index.
-
-    **Raises** :
-
-        FileNotFoundError
-            If csv_path does not exist.
-
-        ValueError
-            If required columns are missing.
     """
     csv_path = Path(csv_path)
     if not csv_path.exists():
@@ -680,18 +488,26 @@ def load_target_csv(csv_path, full_index, *, date_col="date", value_col="value",
     if value_col not in df.columns:
         raise ValueError(f"Target CSV missing value_col='{value_col}'")
 
-    d = pd.to_datetime(df[date_col])
+    d = pd.to_datetime(df[date_col], errors="coerce")
+    d = d[~d.isna()]
+    if d.empty:
+        raise ValueError("Target CSV has no parseable dates")
+
+    # Make tz-aware, then convert to UTC.
     if getattr(d.dt, "tz", None) is None:
         d = d.dt.tz_localize(tz)
     d = d.dt.tz_convert("UTC")
 
-    s = pd.Series(pd.to_numeric(df[value_col], errors="coerce").to_numpy(), index=d)
-    s = s.sort_index()
+    # Re-align values to the filtered date index length if we dropped NaT rows.
+    v = pd.to_numeric(df.loc[d.index, value_col], errors="coerce").to_numpy()
+    s = pd.Series(v, index=d).sort_index()
 
-    full_utc = _full_index_utc(full_index, tz=tz)
+    full_utc = _as_utc_daily_index(full_index, tz=tz)
     s = s.reindex(full_utc)
+
     if fill:
         s = s.interpolate(limit_direction="both").ffill().bfill()
+
     s.name = str(value_col)
     return s
 
@@ -699,48 +515,20 @@ def load_target_csv(csv_path, full_index, *, date_col="date", value_col="value",
 # =============================================================================
 # Predictor stack processing + sequence construction
 # =============================================================================
-
 def process_data(raw_X_data, target_series, *, smooth_window_days=1):
     """
     Construct a final predictor stack by appending target-derived channels.
 
-    **Inputs** :
-
-        raw_X_data : '2D array-like'
-            Predictor array with shape [C, T] (C channels, T timesteps).
-
-        target_series : 'array-like or pandas.Series'
-            Target values aligned to the same T timesteps.
-
-        smooth_window_days : 'int'
-            Window length (days) for trailing mean smoothing of the target.
-
-    **Outputs** :
-
-        X_out : '2D numpy.ndarray (float32)'
-            Predictor stack with shape [C + 2, T].
-
-        channel_info : 'dict'
-            Dictionary describing channel indices with keys:
-              - predictor_idx: indices of original site channels
-              - extra_idx: indices of appended target-derived channels
-              - n_site_channels: number of original channels
-              - n_extra_channels: number of appended channels (2)
-
-    **Raises** :
-
-        ValueError
-            If predictor and target lengths do not match.
+    Appends:
+    - smoothed target (rolling mean)
+    - first difference of smoothed target
     """
     y = pd.to_numeric(pd.Series(target_series), errors="coerce").to_numpy(dtype=float)
     if y.ndim != 1:
         y = y.reshape(-1)
 
-    # simple daily rolling mean for a "storage" proxy
     w = int(max(1, smooth_window_days))
     y_sm = pd.Series(y).rolling(window=w, center=True, min_periods=1).mean().to_numpy(dtype=float)
-
-    # first difference (daily)
     y_diff = np.diff(y_sm, prepend=y_sm[0]).astype(float)
 
     X = np.asarray(raw_X_data, dtype=np.float32)
@@ -757,37 +545,23 @@ def generate_sequences(sequence_length, forecast_horizon, x_raw, y):
     """
     Convert continuous predictor/target arrays into supervised learning sequences.
 
-    **Inputs** :
-
-        sequence_length : 'int'
-            Input sequence length (T).
-
-        forecast_horizon : 'int'
-            Forecast lead time (H).
-
-        x_raw : '2D array-like'
-            Predictor array of shape [C, time].
-
-        y : 'array-like'
-            Target vector of length time.
-
     **Outputs** :
-
-        X_seq : '3D numpy.ndarray (float32)'
-            Input sequences with shape [N, T, C].
-
-        y_seq : '2D numpy.ndarray (float32)'
-            Targets with shape [N, 1].
+        X_seq: [N, T, C]
+        y_seq: [N, 1]
     """
     x_seq, y_seq = [], []
     T = int(sequence_length)
     H = int(forecast_horizon)
 
     y = np.asarray(y, dtype=np.float32).reshape(-1)
+    x_raw = np.asarray(x_raw, dtype=np.float32)
 
-    for i in range(len(y) - T - H + 1):
-        # x_raw: [C, time] -> [T, C]
-        x_seq.append(x_raw[:, i : i + T].T)
+    n = len(y) - T - H + 1
+    if n <= 0:
+        raise ValueError("Not enough data to build sequences for the requested sequence_length and forecast_horizon")
+
+    for i in range(n):
+        x_seq.append(x_raw[:, i : i + T].T)     # [C, time] -> [T, C]
         y_seq.append(y[i + T + H - 1])
 
     return (
