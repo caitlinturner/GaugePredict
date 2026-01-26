@@ -20,6 +20,7 @@ We welcome contributions! Please email cturn65@lsu.edu or open an issue/pull req
 #git clone https://github.com/<your-username>/GaugePredict.git
 #cd GaugePredict
 #pip install -e .
+```
 ---
 ## Workflow Assisted by Notebooks (located in examples)
 - **1) GaugePredict Data Downloader notebook (`downloader_notebook.ipynb`)**
