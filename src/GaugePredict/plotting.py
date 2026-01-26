@@ -51,7 +51,7 @@ def get_examples_results_dir(project_root):
 
 
 def parameter_label_from_target(target_variable):
-        """
+    """
         Create a standard y-axis label from a target-variable name.
     
         Currently supports a discharge label with 10^4 scaling and a default
@@ -764,7 +764,7 @@ def plot_hucs(
     basemap=True,
     zoom=4,
 ):
-     """
+    """
     Plot basin polygons with optional state boundaries and basemap.
 
     By default, this function produces a CONUS-focused plot:
@@ -949,10 +949,7 @@ def plot_statistics(
         TypeError
             If target is not a pandas Series-like object.
     """
-    import numpy as np
-    import pandas as pd
-    import matplotlib.dates as mdates
-    import cmocean
+
 
     if target is None:
         raise ValueError("target is None")
@@ -1154,7 +1151,7 @@ def plot_training_and_timeseries(
     dpi=600,
     site=None,
 ):
- """
+    """
     Plot training curves and aligned observed/predicted test time series.
     - Top row: per-epoch curves for selected metrics (train_loss, r2, willmott)
       for all horizons.
