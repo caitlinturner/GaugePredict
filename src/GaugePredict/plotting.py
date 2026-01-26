@@ -3,7 +3,6 @@
 GaugePredict/plotting.py
 
 Plotting utilities for model outputs, SHAP summaries, and geospatial context.
-
 """
 
 from __future__ import division, print_function, absolute_import
@@ -35,17 +34,17 @@ from .routines import load_hucs_3857
 
 def get_examples_results_dir(project_root):
     """
-        Return the default examples/results directory under a project root.
-    
-        **Inputs** :
-    
-            project_root : 'str or pathlib.Path'
-                Project root directory.
-    
-        **Outputs** :
-    
-            results_dir : 'pathlib.Path'
-                Path to "<project_root>/examples/results".
+    Return the default examples/results directory under a project root.
+
+    **Inputs** :
+
+        project_root : 'str or pathlib.Path'
+            Project root directory.
+
+    **Outputs** :
+
+        results_dir : 'pathlib.Path'
+            Path to "<project_root>/examples/results".
     """
     return Path(project_root) / "examples" / "results"
 
@@ -72,35 +71,36 @@ def parameter_label_from_target(target_variable):
     return r"Water level (m)"
 
 
-
 def horizon_dir(results_root, h):
     """
-        Construct a standardized subdirectory path for a forecast horizon.
-    
-        Example:
-            horizon_dir("results", 3) -> Path("results") / "H03"
-    
-        **Inputs** :
-    
-            results_root : 'str or pathlib.Path'
-                Root directory containing horizon folders.
-    
-            h : 'int'
-                Forecast horizon.
-    
-        **Outputs** :
-    
-            path : 'pathlib.Path'
-                Horizon directory path.
+    Construct a standardized subdirectory path for a forecast horizon.
+
+    Example:
+        horizon_dir("results", 3) -> Path("results") / "H03"
+
+    **Inputs** :
+
+        results_root : 'str or pathlib.Path'
+            Root directory containing horizon folders.
+
+        h : 'int'
+            Forecast horizon.
+
+    **Outputs** :
+
+        path : 'pathlib.Path'
+            Horizon directory path.
     """
     return Path(results_root) / f"H{int(h):02d}"
+
 
 def build_aligned_test_series(results, horizons):
     """
     Build an aligned observed series and a long-form prediction table across horizons.
+
     This function intersects the available test date ranges across all horizons so
-    that predictions and observations are aligned on a common set of dates. Observations 
-    are taken from the largest horizon (max(horizons_sorted)) run
+    that predictions and observations are aligned on a common set of dates.
+    Observations are taken from the largest horizon (max(horizons_sorted)) run
     to provide a consistent y_true vector aligned to the intersection index.
 
     **Inputs** :
@@ -139,7 +139,9 @@ def build_aligned_test_series(results, horizons):
         d = pd.to_datetime(results[h]["dates_test"])
         y_pred = np.asarray(results[h]["y_pred_test"], dtype=float)
         s = pd.Series(y_pred, index=d).reindex(date_index)
-        pred_rows.append(pd.DataFrame({"date": date_index, "horizon": int(h), "y_pred": s.to_numpy()}))
+        pred_rows.append(
+            pd.DataFrame({"date": date_index, "horizon": int(h), "y_pred": s.to_numpy()})
+        )
 
     pred_df = pd.concat(pred_rows, ignore_index=True)
     return date_index, y_true, pred_df
@@ -147,28 +149,29 @@ def build_aligned_test_series(results, horizons):
 
 def get_horizon_styles(horizons, cmap=None, min_color=0.15, max_color=0.9):
     """
-        Assign a distinct color and linestyle for each horizon.
-        Colors are sampled from a continuous colormap over [min_color, max_color].
-        Linestyles cycle through a predefined set.
-    
-        **Inputs** :
-    
-            horizons : 'iterable'
-                Horizons to style.
-    
-            cmap : 'matplotlib colormap or None'
-                Colormap used for horizon colors. Defaults to cmocean.cm.haline.
-    
-            min_color, max_color : 'float'
-                Fractions in [0, 1] used for colormap sampling range.
-    
-        **Outputs** :
-    
-            colors_h : 'dict'
-                Mapping horizon -> RGBA color.
-    
-            linestyles_h : 'dict'
-                Mapping horizon -> matplotlib linestyle spec.
+    Assign a distinct color and linestyle for each horizon.
+
+    Colors are sampled from a continuous colormap over [min_color, max_color].
+    Linestyles cycle through a predefined set.
+
+    **Inputs** :
+
+        horizons : 'iterable'
+            Horizons to style.
+
+        cmap : 'matplotlib colormap or None'
+            Colormap used for horizon colors. Defaults to cmocean.cm.haline.
+
+        min_color, max_color : 'float'
+            Fractions in [0, 1] used for colormap sampling range.
+
+    **Outputs** :
+
+        colors_h : 'dict'
+            Mapping horizon -> RGBA color.
+
+        linestyles_h : 'dict'
+            Mapping horizon -> matplotlib linestyle spec.
     """
     cmap = cmap or cmocean.cm.haline
     horizons_sorted = sorted(int(h) for h in horizons)
@@ -205,7 +208,14 @@ def build_scores_table(results, horizons):
     rows = []
     for h in sorted(int(h) for h in horizons if int(h) in results):
         m = results[h]["metr"]
-        rows.append({"horizon": int(h), "r2": float(m["r2"]), "nse": float(m["nse"]), "willmott": float(m["willmott"])})
+        rows.append(
+            {
+                "horizon": int(h),
+                "r2": float(m["r2"]),
+                "nse": float(m["nse"]),
+                "willmott": float(m["willmott"]),
+            }
+        )
     if not rows:
         return pd.DataFrame(columns=["r2", "nse", "willmott"])
     return pd.DataFrame(rows).set_index("horizon").sort_index()
@@ -217,40 +227,40 @@ def build_scores_table(results, horizons):
 
 def load_saved_horizon_run(results_root, h, *, verbose=True):
     """
-        Load saved model outputs for a single forecast horizon.
-    
-        Expects the horizon directory to contain:
-          - predictions.csv (date, y_true, y_pred)
-          - metrics.json
-          - history.json
-          - model.pt
-          - scaler_y.pkl
-    
-        Dates in predictions.csv are parsed as UTC and then converted to naive
-        timestamps for plotting convenience.
-    
-        **Inputs** :
-    
-            results_root : 'str or pathlib.Path'
-                Root directory containing horizon subfolders.
-    
-            h : 'int'
-                Forecast horizon to load.
-    
-            verbose : 'bool'
-                If True, prints a message when required files are missing.
-    
-        **Outputs** :
-    
-            run : 'dict or None'
-                Dictionary containing:
-                  - dates_test : numpy array of datetime-like (tz-naive)
-                  - y_true_test, y_pred_test : numpy arrays
-                  - metr : dict of metrics
-                  - history : dict of training curves
-                  - scaler_y : loaded scaler object
-                  - model_path : pathlib.Path to model.pt
-                Returns None if required files are missing.
+    Load saved model outputs for a single forecast horizon.
+
+    Expects the horizon directory to contain:
+      - predictions.csv (date, y_true, y_pred)
+      - metrics.json
+      - history.json
+      - model.pt
+      - scaler_y.pkl
+
+    Dates in predictions.csv are parsed as UTC and then converted to naive
+    timestamps for plotting convenience.
+
+    **Inputs** :
+
+        results_root : 'str or pathlib.Path'
+            Root directory containing horizon subfolders.
+
+        h : 'int'
+            Forecast horizon to load.
+
+        verbose : 'bool'
+            If True, prints a message when required files are missing.
+
+    **Outputs** :
+
+        run : 'dict or None'
+            Dictionary containing:
+              - dates_test : numpy array of datetime-like (tz-naive)
+              - y_true_test, y_pred_test : numpy arrays
+              - metr : dict of metrics
+              - history : dict of training curves
+              - scaler_y : loaded scaler object
+              - model_path : pathlib.Path to model.pt
+            Returns None if required files are missing.
     """
     d = horizon_dir(results_root, h)
 
@@ -296,31 +306,31 @@ def load_saved_horizon_run(results_root, h, *, verbose=True):
 
 def load_saved_runs(results_root, horizons, *, verbose=True, require_any=True):
     """
-        Load saved runs for multiple horizons.
-    
-        **Inputs** :
-    
-            results_root : 'str or pathlib.Path'
-                Root directory containing per-horizon subfolders.
-    
-            horizons : 'iterable'
-                Horizons to load.
-    
-            verbose : 'bool'
-                If True, prints a message per loaded horizon and for missing horizons.
-    
-            require_any : 'bool'
-                If True, raises if no horizons are found.
-    
-        **Outputs** :
-    
-            results : 'dict'
-                Mapping horizon (int) -> run dict from load_saved_horizon_run().
-    
-        **Raises** :
-    
-            RuntimeError
-                If require_any is True and no runs are found.
+    Load saved runs for multiple horizons.
+
+    **Inputs** :
+
+        results_root : 'str or pathlib.Path'
+            Root directory containing per-horizon subfolders.
+
+        horizons : 'iterable'
+            Horizons to load.
+
+        verbose : 'bool'
+            If True, prints a message per loaded horizon and for missing horizons.
+
+        require_any : 'bool'
+            If True, raises if no horizons are found.
+
+    **Outputs** :
+
+        results : 'dict'
+            Mapping horizon (int) -> run dict from load_saved_horizon_run().
+
+    **Raises** :
+
+        RuntimeError
+            If require_any is True and no runs are found.
     """
     results = {}
     for h in horizons:
@@ -342,36 +352,36 @@ def load_saved_runs(results_root, horizons, *, verbose=True, require_any=True):
 
 def load_shap_tables_by_horizon(shap_root, horizons, *, filename="shap_sites.csv", verbose=True):
     """
-        Load SHAP site-importance CSV files across multiple horizons and concatenate.
-    
-        Each file is expected at:
-            <shap_root>/H##/<filename>
-    
-        The output includes an added "horizon" column.
-    
-        **Inputs** :
-    
-            shap_root : 'str or pathlib.Path'
-                Root directory containing horizon subfolders.
-    
-            horizons : 'iterable'
-                Horizons to attempt to load.
-    
-            filename : 'str'
-                CSV filename to load from each horizon folder.
-    
-            verbose : 'bool'
-                If True, prints a message when a horizon file is missing.
-    
-        **Outputs** :
-    
-            df : 'pandas.DataFrame'
-                Concatenated SHAP table with "horizon" column.
-    
-        **Raises** :
-    
-            RuntimeError
-                If no SHAP files are found for the requested horizons.
+    Load SHAP site-importance CSV files across multiple horizons and concatenate.
+
+    Each file is expected at:
+        <shap_root>/H##/<filename>
+
+    The output includes an added "horizon" column.
+
+    **Inputs** :
+
+        shap_root : 'str or pathlib.Path'
+            Root directory containing horizon subfolders.
+
+        horizons : 'iterable'
+            Horizons to attempt to load.
+
+        filename : 'str'
+            CSV filename to load from each horizon folder.
+
+        verbose : 'bool'
+            If True, prints a message when a horizon file is missing.
+
+    **Outputs** :
+
+        df : 'pandas.DataFrame'
+            Concatenated SHAP table with "horizon" column.
+
+    **Raises** :
+
+        RuntimeError
+            If no SHAP files are found for the requested horizons.
     """
     shap_root = Path(shap_root)
     frames = []
@@ -394,20 +404,20 @@ def load_shap_tables_by_horizon(shap_root, horizons, *, filename="shap_sites.csv
 
 def load_states(states_fp):
     """
-        Load a states boundary file and standardize to EPSG:4326.
-    
-        If the input file has no CRS, EPSG:4269 is assumed (common for some US datasets).
-        If available, AK, HI, and US territories are removed to focus on CONUS.
-    
-        **Inputs** :
-    
-            states_fp : 'str or pathlib.Path'
-                Path to a states shapefile/GeoPackage/GeoJSON supported by geopandas.
-    
-        **Outputs** :
-    
-            states : 'geopandas.GeoDataFrame'
-                States boundaries projected to EPSG:4326, filtered to CONUS when possible.
+    Load a states boundary file and standardize to EPSG:4326.
+
+    If the input file has no CRS, EPSG:4269 is assumed (common for some US datasets).
+    If available, AK, HI, and US territories are removed to focus on CONUS.
+
+    **Inputs** :
+
+        states_fp : 'str or pathlib.Path'
+            Path to a states shapefile/GeoPackage/GeoJSON supported by geopandas.
+
+    **Outputs** :
+
+        states : 'geopandas.GeoDataFrame'
+            States boundaries projected to EPSG:4326, filtered to CONUS when possible.
     """
     states = gpd.read_file(states_fp)
 
@@ -424,38 +434,42 @@ def load_states(states_fp):
 
 def _normalize_importance_to_unit(df, *, imp_col="importance", out_col="importance_norm"):
     """
-        Ensure a SHAP importance column is normalized to [0, 1].
-    
-        Behavior:
-        - If out_col already exists, it is clipped to [0, 1] after NaN/inf handling.
-        - Otherwise, imp_col is normalized by its maximum (after clipping negatives to 0).
-    
-        **Inputs** :
-    
-            df : 'pandas.DataFrame'
-                SHAP table.
-    
-            imp_col : 'str'
-                Column containing raw importance values.
-    
-            out_col : 'str'
-                Output column name for normalized importance.
-    
-        **Outputs** :
-    
-            df_out : 'pandas.DataFrame'
-                Copy of df with a valid out_col in [0, 1].
-    
-        **Raises** :
-    
-            ValueError
-                If neither out_col nor imp_col exists.
+    Ensure a SHAP importance column is normalized to [0, 1].
+
+    Behavior:
+    - If out_col already exists, it is clipped to [0, 1] after NaN/inf handling.
+    - Otherwise, imp_col is normalized by its maximum (after clipping negatives to 0).
+
+    **Inputs** :
+
+        df : 'pandas.DataFrame'
+            SHAP table.
+
+        imp_col : 'str'
+            Column containing raw importance values.
+
+        out_col : 'str'
+            Output column name for normalized importance.
+
+    **Outputs** :
+
+        df_out : 'pandas.DataFrame'
+            Copy of df with a valid out_col in [0, 1].
+
+    **Raises** :
+
+        ValueError
+            If neither out_col nor imp_col exists.
     """
     d = df.copy()
 
     if out_col in d.columns:
         vals = d[out_col].to_numpy(dtype=float)
-        d[out_col] = np.clip(np.nan_to_num(vals, nan=0.0, posinf=0.0, neginf=0.0), 0.0, 1.0)
+        d[out_col] = np.clip(
+            np.nan_to_num(vals, nan=0.0, posinf=0.0, neginf=0.0),
+            0.0,
+            1.0,
+        )
         return d
 
     if imp_col not in d.columns:
@@ -478,34 +492,34 @@ def _normalize_importance_to_unit(df, *, imp_col="importance", out_col="importan
 
 def load_shap_sites_csv(shap_root, h):
     """
-        Load and normalize a horizon-specific SHAP site-importance table.
-    
-        Expects:
-            <shap_root>/H??/shap_sites.csv
-    
-        Required columns: "lat", "lon"
-        Normalized importance is returned in "importance_norm".
-    
-        **Inputs** :
-    
-            shap_root : 'str or pathlib.Path'
-                Root directory containing SHAP outputs.
-    
-            h : 'int'
-                Horizon to load.
-    
-        **Outputs** :
-    
-            df : 'pandas.DataFrame'
-                SHAP table with importance normalized to [0, 1].
-    
-        **Raises** :
-    
-            FileNotFoundError
-                If shap_sites.csv does not exist.
-    
-            ValueError
-                If required columns are missing.
+    Load and normalize a horizon-specific SHAP site-importance table.
+
+    Expects:
+        <shap_root>/H??/shap_sites.csv
+
+    Required columns: "lat", "lon"
+    Normalized importance is returned in "importance_norm".
+
+    **Inputs** :
+
+        shap_root : 'str or pathlib.Path'
+            Root directory containing SHAP outputs.
+
+        h : 'int'
+            Horizon to load.
+
+    **Outputs** :
+
+        df : 'pandas.DataFrame'
+            SHAP table with importance normalized to [0, 1].
+
+    **Raises** :
+
+        FileNotFoundError
+            If shap_sites.csv does not exist.
+
+        ValueError
+            If required columns are missing.
     """
     csv_path = Path(shap_root) / f"H{int(h):02d}" / "shap_sites.csv"
     if not csv_path.exists():
@@ -522,26 +536,26 @@ def load_shap_sites_csv(shap_root, h):
 
 def top_n_shap_sites(df, n_keep):
     """
-        Select the top-N sites by normalized SHAP importance.
-    
-        **Inputs** :
-    
-            df : 'pandas.DataFrame'
-                SHAP site table containing "importance_norm".
-    
-            n_keep : 'int'
-                Number of rows to keep.
-    
-        **Outputs** :
-    
-            df_top : 'pandas.DataFrame'
-                Copy of top-N sites sorted by descending importance.
+    Select the top-N sites by normalized SHAP importance.
+
+    **Inputs** :
+
+        df : 'pandas.DataFrame'
+            SHAP site table containing "importance_norm".
+
+        n_keep : 'int'
+            Number of rows to keep.
+
+    **Outputs** :
+
+        df_top : 'pandas.DataFrame'
+            Copy of top-N sites sorted by descending importance.
     """
     return df.sort_values("importance_norm", ascending=False).head(int(n_keep)).copy()
 
 
 # =============================================================================
-# SHAP geoplot grid 
+# SHAP geoplot grid
 # =============================================================================
 
 def plot_shap_geoplot_grid(
@@ -568,86 +582,87 @@ def plot_shap_geoplot_grid(
     font_size=8,
 ):
     """
-        Creates subplot of of SHAP site importance maps for multiple horizons.
-    
-        Each figure shows:
-        - All available sites in light gray
-        - The top-N sites (per horizon) colored by normalized SHAP importance
-    
-        State boundaries are optional. If states_fp is provided, boundaries are drawn
-        for geographic context; if states_fp is None, boundaries are skipped.
+    Creates subplot of SHAP site importance maps for multiple horizons.
 
-        This was specific for project use. A generalized update to this function is comming soon.
-    
-        **Inputs** :
-    
-            shap_root : 'str or pathlib.Path'
-                Root directory containing per-horizon SHAP outputs.
-    
-            horizons : 'iterable'
-                Horizons to plot.
-    
-            n_shap_by_h : 'dict'
-                Mapping horizon -> number of top sites to highlight.
-    
-            states_fp : 'str or pathlib.Path'
-                States boundary dataset path (read by geopandas).
-    
-            xlim, ylim : 'tuple (float, float)' or None
-                Plot bounds in degrees (lon/lat) for EPSG:4326 output.
-    
-            fig_w, fig_h : 'float'
-                Figure width/height in inches.
-    
-            nrows, ncols : 'int'  or None
-                Grid arrangement for panels.
-    
-            s_all : 'float'
-                Marker size for all sites.
-    
-            s_used : 'float'
-                Marker size for highlighted sites.
-    
-            wspace, hspace : 'float'
-                Grid spacing.
-    
-            cbar_rect : 'tuple'
-                Rectangle (left, bottom, width, height) for colorbar axes in figure
-                fraction coordinates.
-    
-            save_path : 'str or pathlib.Path or None'
-                If provided, figure is saved to this path.
-    
-            show : 'bool'
-                If True, calls plt.show().
-    
-            dpi : 'int'
-                Figure display dpi.
-    
-            save_dpi : 'int'
-                Save dpi when writing to disk.
-    
-            font_size : 'int'
-                Base matplotlib font size.
-    
-        **Outputs** :
-    
-            fig : 'matplotlib.figure.Figure'
-                The created figure.
-    
-        **Raises** :
-    
-            KeyError
-                If n_shap_by_h is missing an entry for one of the requested horizons.
+    Each figure shows:
+    - All available sites in light gray
+    - The top-N sites (per horizon) colored by normalized SHAP importance
+
+    State boundaries are optional. If states_fp is provided, boundaries are drawn
+    for geographic context; if states_fp is None, boundaries are skipped.
+
+    This was specific for project use. A generalized update to this function is comming soon.
+
+    **Inputs** :
+
+        shap_root : 'str or pathlib.Path'
+            Root directory containing per-horizon SHAP outputs.
+
+        horizons : 'iterable'
+            Horizons to plot.
+
+        n_shap_by_h : 'dict'
+            Mapping horizon -> number of top sites to highlight.
+
+        states_fp : 'str or pathlib.Path'
+            States boundary dataset path (read by geopandas).
+
+        xlim, ylim : 'tuple (float, float)' or None
+            Plot bounds in degrees (lon/lat) for EPSG:4326 output.
+
+        fig_w, fig_h : 'float'
+            Figure width/height in inches.
+
+        nrows, ncols : 'int' or None
+            Grid arrangement for panels.
+
+        s_all : 'float'
+            Marker size for all sites.
+
+        s_used : 'float'
+            Marker size for highlighted sites.
+
+        wspace, hspace : 'float'
+            Grid spacing.
+
+        cbar_rect : 'tuple'
+            Rectangle (left, bottom, width, height) for colorbar axes in figure
+            fraction coordinates.
+
+        save_path : 'str or pathlib.Path or None'
+            If provided, figure is saved to this path.
+
+        show : 'bool'
+            If True, calls plt.show().
+
+        dpi : 'int'
+            Figure display dpi.
+
+        save_dpi : 'int'
+            Save dpi when writing to disk.
+
+        font_size : 'int'
+            Base matplotlib font size.
+
+    **Outputs** :
+
+        fig : 'matplotlib.figure.Figure'
+            The created figure.
+
+    **Raises** :
+
+        KeyError
+            If n_shap_by_h is missing an entry for one of the requested horizons.
     """
-    plt.rcParams.update({
-        "figure.dpi": dpi,
-        "savefig.dpi": save_dpi,
-        "font.size": font_size,
-        "axes.linewidth": 0.8,
-    })
+    plt.rcParams.update(
+        {
+            "figure.dpi": dpi,
+            "savefig.dpi": save_dpi,
+            "font.size": font_size,
+            "axes.linewidth": 0.8,
+        }
+    )
 
-    # Optional states boundaries
     states_gdf = load_states(states_fp) if states_fp is not None else None
 
     frames = {}
@@ -756,12 +771,14 @@ def plot_shap_geoplot_grid(
 
     return fig, axs
 
+
 # =============================================================================
 # HUC plotting
 # =============================================================================
 
 conus_extent = (-14_000_000, -7_300_000, 2_600_000, 7_000_000)
 conus_ak_extent = (-20_000_000, -7_000_000, 2_600_000, 11_700_000)
+
 
 def plot_hucs(
     base_dir,
@@ -869,11 +886,29 @@ def plot_hucs(
         try:
             for h, sub in basins_plot.groupby("huc2"):
                 rp = sub.geometry.union_all().representative_point()
-                ax.text(rp.x, rp.y, h, ha="center", va="center", fontsize=8, fontweight="bold", zorder=3)
+                ax.text(
+                    rp.x,
+                    rp.y,
+                    h,
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                    fontweight="bold",
+                    zorder=3,
+                )
         except Exception:
             for h, sub in basins_plot.groupby("huc2"):
                 rp = sub.unary_union.representative_point()
-                ax.text(rp.x, rp.y, h, ha="center", va="center", fontsize=8, fontweight="bold", zorder=3)
+                ax.text(
+                    rp.x,
+                    rp.y,
+                    h,
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                    fontweight="bold",
+                    zorder=3,
+                )
 
     if basemap:
         ctx.add_basemap(
@@ -893,9 +928,11 @@ def plot_hucs(
     ax.grid(False)
     return fig, ax
 
+
 # =============================================================================
 # Target Site plotting
 # =============================================================================
+
 def plot_statistics(
     target,
     *,
@@ -957,8 +994,6 @@ def plot_statistics(
         TypeError
             If target is not a pandas Series-like object.
     """
-
-
     if target is None:
         raise ValueError("target is None")
     if not hasattr(target, "index"):
@@ -966,7 +1001,6 @@ def plot_statistics(
 
     s = pd.Series(target.copy())
     s = s.sort_index()
-
     s.index = pd.to_datetime(s.index)
 
     if s.index.tz is None:
@@ -980,15 +1014,23 @@ def plot_statistics(
     haline_color = cmocean.cm.haline(0.3)
 
     fig, axes = plt.subplots(
-        3, 1,
+        3,
+        1,
         figsize=figsize,
         dpi=dpi,
         constrained_layout=True,
     )
 
-    # panel (a): time series 
+    # panel (a): time series
     ax1 = axes[0]
-    ax1.plot(s.index, s.to_numpy(dtype=float), lw=0.8, color="black", alpha=0.8, label="Observed")
+    ax1.plot(
+        s.index,
+        s.to_numpy(dtype=float),
+        lw=0.8,
+        color="black",
+        alpha=0.8,
+        label="Observed",
+    )
 
     if show_trend:
         vv = v.astype(float)
@@ -1004,7 +1046,14 @@ def plot_statistics(
         else:
             trend_label_use = str(trend_label)
 
-        ax1.plot(vv.index, y_trend, lw=1.0, ls="--", color=haline_color, label=trend_label_use)
+        ax1.plot(
+            vv.index,
+            y_trend,
+            lw=1.0,
+            ls="--",
+            color=haline_color,
+            label=trend_label_use,
+        )
 
     years = np.arange(s.index.year.min(), s.index.year.max() + 1)
     label_years = years[years % 2 == 0]
@@ -1020,7 +1069,7 @@ def plot_statistics(
     ax1.grid(False)
     _despine_axes(ax1)
 
-    # panel (b): histogram 
+    # panel (b): histogram
     ax2 = axes[1]
     ax2.hist(v.to_numpy(dtype=float), bins=int(hist_bins), color="0.8")
     ax2.set_ylabel("Frequency", fontsize=7, fontweight="bold", labelpad=13.5)
@@ -1032,7 +1081,7 @@ def plot_statistics(
     text_x_shift = 0.005 * (xmax - xmin)
 
     quantiles = {
-        "q5":  q.get(0.05, np.nan),
+        "q5": q.get(0.05, np.nan),
         "q25": q.get(0.25, np.nan),
         "q50": q.get(0.50, np.nan),
         "q75": q.get(0.75, np.nan),
@@ -1071,10 +1120,12 @@ def plot_statistics(
     ax2.grid(False)
     _despine_axes(ax2)
 
-    #  panel (c): monthly violin 
+    # panel (c): monthly violin
     ax3 = axes[2]
-    month_labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    month_labels = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ]
 
     raw = [np.asarray(v[v.index.month == m].values, dtype=float) for m in range(1, 13)]
     monthly = [x[np.isfinite(x)] for x in raw]
@@ -1128,10 +1179,14 @@ def plot_statistics(
 
     for ax, lab in zip(axes, ["(a)", "(b)", "(c)"]):
         ax.text(
-            0.01, 0.95, lab,
+            0.01,
+            0.95,
+            lab,
             transform=ax.transAxes,
-            ha="left", va="top",
-            fontsize=8, fontweight="bold",
+            ha="left",
+            va="top",
+            fontsize=8,
+            fontweight="bold",
             color="black",
             zorder=10,
         )
@@ -1140,7 +1195,7 @@ def plot_statistics(
 
 
 # =============================================================================
-# Training metrics + test time series 
+# Training metrics + test time series
 # =============================================================================
 
 def plot_training_and_timeseries(
@@ -1242,7 +1297,10 @@ def plot_training_and_timeseries(
 
     axs_hist = []
     for j in range(n_metrics):
-        ax = fig.add_subplot(grid[0, j]) if j == 0 else fig.add_subplot(grid[0, j], sharey=axs_hist[0])
+        if j == 0:
+            ax = fig.add_subplot(grid[0, j])
+        else:
+            ax = fig.add_subplot(grid[0, j], sharey=axs_hist[0])
         axs_hist.append(ax)
 
     panel_letters_top = ["(a)", "(b)", "(c)", "(d)", "(e)"]
@@ -1252,7 +1310,13 @@ def plot_training_and_timeseries(
         for h in horizons_sorted:
             hist_vals = results[h]["history"][mk]
             epochs = np.arange(1, len(hist_vals) + 1)
-            ax.plot(epochs, hist_vals, lw=1.0, color=colors_h[h], linestyle=linestyles_h[h])
+            ax.plot(
+                epochs,
+                hist_vals,
+                lw=1.0,
+                color=colors_h[h],
+                linestyle=linestyles_h[h],
+            )
 
         ax.set_ylabel(labels_hist.get(mk, mk), fontsize=7, fontweight="bold", labelpad=2)
         ax.tick_params(axis="both", labelsize=7)
@@ -1263,10 +1327,14 @@ def plot_training_and_timeseries(
 
         if j < len(panel_letters_top):
             ax.text(
-                0.84, 0.95, panel_letters_top[j],
+                0.84,
+                0.95,
+                panel_letters_top[j],
                 transform=ax.transAxes,
-                fontsize=7, fontweight="bold",
-                ha="left", va="top",
+                fontsize=7,
+                fontweight="bold",
+                ha="left",
+                va="top",
                 bbox=dict(facecolor="white", alpha=0.7, pad=1.5, edgecolor="none"),
                 zorder=10,
             )
@@ -1281,10 +1349,19 @@ def plot_training_and_timeseries(
 
     for h in horizons_sorted:
         sub = pred_df[pred_df["horizon"] == h].sort_values("date")
-        y_pred_s = pd.Series(sub["y_pred"].to_numpy(), index=sub["date"]).rolling(
-            f"{int(roll_window_days)}D", center=True
-        ).mean()
-        ax_ts.plot(sub["date"], y_pred_s, lw=1.0, linestyle=linestyles_h[h], color=colors_h[h], alpha=0.7)
+        y_pred_s = (
+            pd.Series(sub["y_pred"].to_numpy(), index=sub["date"])
+            .rolling(f"{int(roll_window_days)}D", center=True)
+            .mean()
+        )
+        ax_ts.plot(
+            sub["date"],
+            y_pred_s,
+            lw=1.0,
+            linestyle=linestyles_h[h],
+            color=colors_h[h],
+            alpha=0.7,
+        )
 
     start_pad = pd.to_datetime(date_index.min()) - pd.Timedelta(days=15)
     end_pad = pd.to_datetime(date_index.max()) + pd.Timedelta(days=15)
@@ -1295,6 +1372,7 @@ def plot_training_and_timeseries(
     if np.isfinite(ymin) and np.isfinite(ymax):
         pad = 0.05 * (ymax - ymin if ymax > ymin else 1.0)
         ax_ts.set_ylim(ymin - pad, ymax + pad)
+
     if site is not None:
         ax_ts.set_ylabel(parameter_label, fontsize=7, fontweight="bold", labelpad=8)
 
@@ -1344,10 +1422,14 @@ def plot_training_and_timeseries(
     )
 
     ax_ts.text(
-        0.955, 0.95, "(d)",
+        0.955,
+        0.95,
+        "(d)",
         transform=ax_ts.transAxes,
-        fontsize=8, fontweight="bold",
-        ha="left", va="top",
+        fontsize=8,
+        fontweight="bold",
+        ha="left",
+        va="top",
         bbox=dict(facecolor="white", alpha=0.7, pad=1.5, edgecolor="none"),
         zorder=10,
     )
@@ -1359,4 +1441,4 @@ def plot_training_and_timeseries(
         fig.text(0.125, 0.89, "Training data", fontsize=8)
         fig.text(0.125, 0.45, "Test data", fontsize=8)
 
-    return fig, ax
+    return fig, ax_ts
