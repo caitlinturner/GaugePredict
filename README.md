@@ -1,4 +1,5 @@
 ## GaugePredict (Beta Version - V 1.0.0 Release coming soon!)
+---
 
 An open-source GitHub package that forecasts downstream gauge conditions using a hybrid neural network model.
 
