@@ -683,7 +683,7 @@ class Trainer:
         evaluations=None,
         max_grad_norm=1.0,
     ):
-                """
+        """
         **Inputs** :
 
             model : 'torch.nn.Module'
@@ -733,7 +733,7 @@ class Trainer:
         self.history = {}
 
     def train_epoch(self):
-       """
+        """
         Train the model for one epoch over the training DataLoader.
 
         **Inputs** :
@@ -764,7 +764,7 @@ class Trainer:
         return running / float(len(self.train_dataloader.dataset))
 
     def evaluate(self, dataloader=None):
-       """
+        """
         Run inference on a dataloader and return inverse-transformed y and yhat.
 
         **Inputs** :
@@ -810,7 +810,7 @@ class Trainer:
         warmup_scale_mode="linear",
         warmup_min_scale=0.1,
     ):
-       """
+        """
         Train at lower learning rate for a fixed number of epochs with optional metric evaluation.
 
         Framework:
@@ -1443,7 +1443,7 @@ def update_compute_summary(
     return compute_summary
 
 def save_compute_summary(results_root, compute_summary):
-        """
+    """
     Write a compute summary dictionary.
 
     **Inputs** :
