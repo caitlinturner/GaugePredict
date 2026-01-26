@@ -58,13 +58,13 @@ horizons = [1, 3]
 
 default_n_shap = 1950
 n_shap_by_h = {
-    1: 34,
-    3: 32,
-    5: 45,
+    1: 5,
+    3: 9,
+    5: 15,
     10: 50,
-    15: 65,
-    20: 75,
-    30: 100,
+    15: 90,
+    20: 90,
+    30: 120,
 }
 
 hp_defaults = dict(
@@ -75,7 +75,7 @@ hp_defaults = dict(
     dropout_cnn=0.00,
     dropout_lstm=0.20,
     dropout_fc=0.0,
-    epochs=5,
+    epochs=25, # Run longer for horizons > 5 (I suggest 100 epochs)
     batch_size=128,
     background_size=32,
     nsamples=128,
@@ -84,14 +84,35 @@ hp_defaults = dict(
 )
 
 hp_by_h = {
-    1: dict(sequence_length=3, learning_rate=1.5e-5, dropout_cnn=0.02, dropout_lstm=0.0),
-    3: dict(sequence_length=4, learning_rate=9.5e-6, dropout_cnn=0.02, dropout_lstm=0.0),
-    5: dict(sequence_length=4, learning_rate=7.0e-6, dropout_cnn=0.04, dropout_lstm=0.06),
-    10: dict(sequence_length=5, learning_rate=5.0e-6, dropout_cnn=0.5, dropout_lstm=0.08),
-    15: dict(sequence_length=5, learning_rate=2.5e-6, dropout_cnn=0.5, dropout_lstm=0.00),
-    20: dict(sequence_length=7, learning_rate=0.95e-6, dropout_cnn=0.1, dropout_lstm=0.15, dropout_fc=0.1),
-    30: dict(sequence_length=7, learning_rate=0.675e-6, dropout_cnn=0.1, dropout_lstm=0.125, dropout_fc=0.01),
+    1: dict(sequence_length=3, learning_rate=3.0e-4, 
+            dropout_cnn=0.00, dropout_lstm=0.00, dropout_fc=0.00,
+            weight_decay=5.0e-4, max_grad_norm=1),
+    
+    3: dict(sequence_length=4, learning_rate=5.0e-5, 
+            dropout_cnn=0.00, dropout_lstm=0.00, dropout_fc=0.00,
+            weight_decay=3.0e-4, max_grad_norm=1.25),
+    
+    5: dict(sequence_length=5, learning_rate=3.5e-6, 
+            dropout_cnn=0.00, dropout_lstm=0.225, dropout_fc=0.15,
+            weight_decay=5.0e-3, max_grad_norm=2.5),
+    
+    10: dict(sequence_length=6, learning_rate=4.75e-6, 
+             dropout_cnn=0.0, dropout_lstm=0.25, dropout_fc=0.30,
+             weight_decay=1.0e-2, max_grad_norm=3.25),
+
+    15: dict(sequence_length=10, learning_rate=1.85e-6, 
+             dropout_cnn=0.0, dropout_lstm=0.05, dropout_fc=0.375,
+             weight_decay=2.5e-2, max_grad_norm=3.5),
+    
+    20: dict(sequence_length=12, learning_rate=9.5e-7,
+             dropout_cnn=0.00, dropout_lstm=0.05, dropout_fc=0.35,
+             weight_decay=1.0e-2, max_grad_norm=2.75),
+
+    30: dict(sequence_length=30, learning_rate=7.7e-7,
+             dropout_cnn=0.00, dropout_lstm=0.00, dropout_fc=0.35,
+             weight_decay=5.25e-2, max_grad_norm=3.75),
 }
+
 
 
 # --------------------------------------------------------
