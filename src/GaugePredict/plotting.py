@@ -51,22 +51,22 @@ def get_examples_results_dir(project_root):
 
 
 def parameter_label_from_target(target_variable):
-    """
-        Create a standard y-axis label from a target-variable name.
-    
-        Currently supports a discharge label with 10^4 scaling and a default
-        water-level label. Broad use will be updated.
-    
-        **Inputs** :
-    
-            target_variable : 'str'
-                Target variable identifier (e.g., "discharge", "water_level").
-    
-        **Outputs** :
-    
-            label : 'str'
-                Matplotlib-ready label string.
-    """
+        """
+            Create a standard y-axis label from a target-variable name.
+        
+            Currently supports a discharge label with 10^4 scaling and a default
+            water-level label. Broad use will be updated.
+        
+            **Inputs** :
+        
+                target_variable : 'str'
+                    Target variable identifier (e.g., "discharge", "water_level").
+        
+            **Outputs** :
+        
+                label : 'str'
+                    Matplotlib-ready label string.
+        """
     if str(target_variable).lower() == "discharge":
         return r"Discharge ($10^{4}$ $m^{3}$ $s^{-1}$)"
     return r"Water level (m)"
