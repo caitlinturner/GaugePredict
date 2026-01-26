@@ -22,7 +22,6 @@ from dataretrieval import nwis
 def _rank_parameter_col(name, preference):
     """
     Rank a candidate NWIS daily-values column name based on keyword preference.
-
     Many NWIS DV requests return multiple columns for a parameter code
     (e.g., value/mean/sum/total variants). This helper assigns a rank based on
     the first matching keyword in `preference`, with lower ranks preferred.
@@ -33,11 +32,9 @@ def _rank_parameter_col(name, preference):
             return i
     return len(preference)
 
-    
 def _pick_parameter_col(df, parameter_code, *, parameter_kind=None):
     """
     Select the preferred NWIS DV column corresponding to a parameter code.
-
     This function filters columns that include `parameter_code` in their name,
     then selects the best match using a simple preference order.
     For precipitation-like parameters, "sum/total/accum" is prioritized since
