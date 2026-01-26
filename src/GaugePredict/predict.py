@@ -192,63 +192,63 @@ class GaugeDataModel:
         target_units="metric",
         target_parameter_kind=None,
     ):
-       """
-        Configures data pipeline but does not load data yet.
-
-        **Inputs** :
-
-            data_files : 'list'
-                Collection of predictor data sources consumed by routines.load_data().
-
-            target_site : 'str or None'
-                USGS site id for NWIS retrieval. Use None when using a CSV target.
-
-            start_date, end_date : 'str'
-                Overall modeling window bounds ("YYYY-MM-DD").
-
-            tz : 'str'
-                Timezone used to localize daily stamps prior to conversion to UTC
-                downstream (see routines.generate_full_index and downloader.load_target).
-
-            sequence_length : 'int'
-                Number of past days per input sample.
-
-            forecast_horizon : 'int'
-                Lead time in days for the target (prediction horizon).
-
-            cutoff_date : 'str or datetime-like'
-                Date used to split sequences into train/test.
-
-            parameter_code : 'str or None'
-                USGS parameter code for NWIS retrieval. Use None when using a CSV target.
-
-            batch_size : 'int'
-                Batch size for DataLoaders.
-
-            allowed_site_ids_norm : 'list of str or None'
-                Optional whitelist of predictor sites, compared against normalized ids
-                (leading zeros stripped).
-
-            target_csv_path : 'str or pathlib.Path or None'
-                If provided, target is loaded from CSV instead of NWIS.
-
-            target_csv_date_col : 'str or None'
-                Date column name for CSV target loading.
-
-            target_csv_value_col : 'str or None'
-                Value column name for CSV target loading.
-
-            target_units : 'str'
-                Unit mode for NWIS target conversion (passed through to load_target()).
-
-            target_parameter_kind : 'str or None'
-                Optional hint for NWIS column selection (passed through to load_target()).
-
-        **Outputs** :
-
-            GaugeDataModel : 'GaugeDataModel'
-                Configured instance; call setup() to prepare loaders.
-        """
+    """
+    Configures data pipeline but does not load data yet.
+    
+    **Inputs** :
+    
+        data_files : 'list'
+            Collection of predictor data sources consumed by routines.load_data().
+    
+        target_site : 'str or None'
+            USGS site id for NWIS retrieval. Use None when using a CSV target.
+    
+        start_date, end_date : 'str'
+            Overall modeling window bounds ("YYYY-MM-DD").
+    
+        tz : 'str'
+            Timezone used to localize daily stamps prior to conversion to UTC
+            downstream (see routines.generate_full_index and downloader.load_target).
+    
+        sequence_length : 'int'
+            Number of past days per input sample.
+    
+        forecast_horizon : 'int'
+            Lead time in days for the target (prediction horizon).
+    
+        cutoff_date : 'str or datetime-like'
+            Date used to split sequences into train/test.
+    
+        parameter_code : 'str or None'
+            USGS parameter code for NWIS retrieval. Use None when using a CSV target.
+    
+        batch_size : 'int'
+            Batch size for DataLoaders.
+    
+        allowed_site_ids_norm : 'list of str or None'
+            Optional whitelist of predictor sites, compared against normalized ids
+            (leading zeros stripped).
+    
+        target_csv_path : 'str or pathlib.Path or None'
+            If provided, target is loaded from CSV instead of NWIS.
+    
+        target_csv_date_col : 'str or None'
+            Date column name for CSV target loading.
+    
+        target_csv_value_col : 'str or None'
+            Value column name for CSV target loading.
+    
+        target_units : 'str'
+            Unit mode for NWIS target conversion (passed through to load_target()).
+    
+        target_parameter_kind : 'str or None'
+            Optional hint for NWIS column selection (passed through to load_target()).
+    
+    **Outputs** :
+    
+        GaugeDataModel : 'GaugeDataModel'
+            Configured instance; call setup() to prepare loaders.
+    """
         self.data_files = data_files
         self.target_site = target_site
         self.start_date = start_date
