@@ -37,19 +37,20 @@ from .routines import (
 # =============================================================================
 def count_parameters(model):
     """
-        Count the number of trainable parameters in PyTorch model.
-    
-        **Inputs** :
-    
-            model : 'torch.nn.Module'
-                Model instance.
-    
-        **Outputs** :
-    
-            n_params : 'int'
-                Total number of parameters with requires_grad=True.
+    Count the number of trainable parameters in PyTorch model.
+
+    **Inputs** :
+
+        model : 'torch.nn.Module'
+            Model instance.
+
+    **Outputs** :
+
+        n_params : 'int'
+            Total number of parameters with requires_grad=True.
     """
     return int(sum(p.numel() for p in model.parameters() if p.requires_grad))
+
 
 def get_hardware_info(device_str):
     """
@@ -101,6 +102,7 @@ class SequenceDataset(Dataset):
     Stores X and y as float32 tensors and exposes input_channels for model
     construction.
     """
+
     def __init__(self, X, y):
         """
         **Inputs** :
@@ -115,7 +117,7 @@ class SequenceDataset(Dataset):
 
             dataset : 'SequenceDataset'
                 Dataset containing float32 tensors X and y.
-        """        
+        """
         self.X = torch.tensor(X, dtype=torch.float32)
         self.y = torch.tensor(y, dtype=torch.float32)
         self.input_channels = int(X.shape[2])
@@ -192,63 +194,63 @@ class GaugeDataModel:
         target_units="metric",
         target_parameter_kind=None,
     ):
-    """
-    Configures data pipeline but does not load data yet.
-    
-    **Inputs** :
-    
-        data_files : 'list'
-            Collection of predictor data sources consumed by routines.load_data().
-    
-        target_site : 'str or None'
-            USGS site id for NWIS retrieval. Use None when using a CSV target.
-    
-        start_date, end_date : 'str'
-            Overall modeling window bounds ("YYYY-MM-DD").
-    
-        tz : 'str'
-            Timezone used to localize daily stamps prior to conversion to UTC
-            downstream (see routines.generate_full_index and downloader.load_target).
-    
-        sequence_length : 'int'
-            Number of past days per input sample.
-    
-        forecast_horizon : 'int'
-            Lead time in days for the target (prediction horizon).
-    
-        cutoff_date : 'str or datetime-like'
-            Date used to split sequences into train/test.
-    
-        parameter_code : 'str or None'
-            USGS parameter code for NWIS retrieval. Use None when using a CSV target.
-    
-        batch_size : 'int'
-            Batch size for DataLoaders.
-    
-        allowed_site_ids_norm : 'list of str or None'
-            Optional whitelist of predictor sites, compared against normalized ids
-            (leading zeros stripped).
-    
-        target_csv_path : 'str or pathlib.Path or None'
-            If provided, target is loaded from CSV instead of NWIS.
-    
-        target_csv_date_col : 'str or None'
-            Date column name for CSV target loading.
-    
-        target_csv_value_col : 'str or None'
-            Value column name for CSV target loading.
-    
-        target_units : 'str'
-            Unit mode for NWIS target conversion (passed through to load_target()).
-    
-        target_parameter_kind : 'str or None'
-            Optional hint for NWIS column selection (passed through to load_target()).
-    
-    **Outputs** :
-    
-        GaugeDataModel : 'GaugeDataModel'
-            Configured instance; call setup() to prepare loaders.
-    """
+        """
+        Configures data pipeline but does not load data yet.
+
+        **Inputs** :
+
+            data_files : 'list'
+                Collection of predictor data sources consumed by routines.load_data().
+
+            target_site : 'str or None'
+                USGS site id for NWIS retrieval. Use None when using a CSV target.
+
+            start_date, end_date : 'str'
+                Overall modeling window bounds ("YYYY-MM-DD").
+
+            tz : 'str'
+                Timezone used to localize daily stamps prior to conversion to UTC
+                downstream (see routines.generate_full_index and downloader.load_target).
+
+            sequence_length : 'int'
+                Number of past days per input sample.
+
+            forecast_horizon : 'int'
+                Lead time in days for the target (prediction horizon).
+
+            cutoff_date : 'str or datetime-like'
+                Date used to split sequences into train/test.
+
+            parameter_code : 'str or None'
+                USGS parameter code for NWIS retrieval. Use None when using a CSV target.
+
+            batch_size : 'int'
+                Batch size for DataLoaders.
+
+            allowed_site_ids_norm : 'list of str or None'
+                Optional whitelist of predictor sites, compared against normalized ids
+                (leading zeros stripped).
+
+            target_csv_path : 'str or pathlib.Path or None'
+                If provided, target is loaded from CSV instead of NWIS.
+
+            target_csv_date_col : 'str or None'
+                Date column name for CSV target loading.
+
+            target_csv_value_col : 'str or None'
+                Value column name for CSV target loading.
+
+            target_units : 'str'
+                Unit mode for NWIS target conversion (passed through to load_target()).
+
+            target_parameter_kind : 'str or None'
+                Optional hint for NWIS column selection (passed through to load_target()).
+
+        **Outputs** :
+
+            GaugeDataModel : 'GaugeDataModel'
+                Configured instance; call setup() to prepare loaders.
+        """
         self.data_files = data_files
         self.target_site = target_site
         self.start_date = start_date
@@ -278,10 +280,10 @@ class GaugeDataModel:
         self.site_meta_df = None
 
     def prepare_data(self):
-       """
-        Load predictors and target, optionally smooth, and build sequences.
+        """
+        Load predictors and target and build sequences.
 
-        Feramework:
+        Framework:
         - Loads raw predictor arrays and per-channel metadata via routines.load_data()
         - Loads the target series via CSV or NWIS
         - Runs routines.process_data() to align and transform predictors
@@ -292,8 +294,7 @@ class GaugeDataModel:
             None (uses instance configuration)
 
         **Outputs** :
-            None (populates instance attributes: processed_X_data, channel_info,
-            X_seq, y_seq, y, site_meta_df)
+            None (populates instance attributes: processed_X_data, X_seq, y_seq, y, site_meta_df)
         """
         raw_X_data, site_meta = load_data(
             self.data_files,
@@ -334,7 +335,7 @@ class GaugeDataModel:
             self.y,
         )
 
-        # predictor channels only 
+        # predictor channels only
         n_pred_channels = int(self.processed_X_data.shape[0] - 2)
         site_meta = site_meta[:n_pred_channels]
 
@@ -355,16 +356,17 @@ class GaugeDataModel:
 
     def split_train_test(self):
         """
-            Create boolean masks and split sequences into train and test arrays.
-            Uses routines.generate_train_test_masks() to create per-sequence masks
-            derived from the full daily index, sequence length, forecast horizon, and
-            cutoff date. The masks are then applied to X_seq and y_seq.
-    
-            **Inputs** :
-                None
-    
-            **Outputs** :
-                None (populates train_mask, test_mask, X_train, y_train, X_test, y_test)
+        Create boolean masks and split sequences into train and test arrays.
+
+        Uses routines.generate_train_test_masks() to create per-sequence masks
+        derived from the full daily index, sequence length, forecast horizon, and
+        cutoff date. The masks are then applied to X_seq and y_seq.
+
+        **Inputs** :
+            None
+
+        **Outputs** :
+            None (populates train_mask, test_mask, X_train, y_train, X_test, y_test)
         """
         self.train_mask, self.test_mask = generate_train_test_masks(
             self.full_index,
@@ -382,6 +384,7 @@ class GaugeDataModel:
     def normalize(self):
         """
         Normalize predictors and targets using training set statistics.
+
         Predictors (X) are standardized per channel using mean and standard
         deviation computed over the training samples and time dimension.
         Targets (y) are standardized with sklearn.StandardScaler.
@@ -392,14 +395,12 @@ class GaugeDataModel:
         **Outputs** :
             None (populates X_train_norm, X_test_norm, scaler_y, y_train_scaled, y_test_scaled)
         """
-        # standardize X (per-channel over batch/time)
         X_mean = self.X_train.mean(axis=(0, 1), keepdims=True)
         X_std = self.X_train.std(axis=(0, 1), keepdims=True) + 1e-8
 
         self.X_train_norm = (self.X_train - X_mean) / X_std
         self.X_test_norm = (self.X_test - X_mean) / X_std
 
-        # restore y scaling 
         self.scaler_y = StandardScaler()
         ytr = np.asarray(self.y_train, dtype=float).reshape(-1, 1)
         yte = np.asarray(self.y_test, dtype=float).reshape(-1, 1)
@@ -414,9 +415,6 @@ class GaugeDataModel:
         Site ids are stored in both raw and normalized forms:
         - site_no_raw: original strings (may include leading zeros)
         - site_no_norm: leading zeros stripped
-
-        Both are attached to train and test datasets for downstream attribution
-        and reporting.
 
         **Inputs** :
             None
@@ -440,13 +438,6 @@ class GaugeDataModel:
     def setup(self):
         """
         Run the full data preparation pipeline and create DataLoaders.
-
-        This is the primary entry point for preparing data:
-        - prepare_data()
-        - split_train_test()
-        - normalize()
-        - create_datasets()
-        - create train/test torch DataLoaders
 
         **Inputs** :
             None
@@ -495,10 +486,8 @@ class CNN_LSTM(nn.Module):
     Optional feature:
     - set_channel_mask() can apply a multiplicative mask per input channel to
       ablate or weight channels during forward passes.
-
-      Future updates will add additional function for the selection of individual models and 
-      modifications to the number of layers
     """
+
     def __init__(self, input_channels, seq_len):
         """
         **Inputs** :
@@ -519,7 +508,7 @@ class CNN_LSTM(nn.Module):
 
         self.register_buffer("channel_mask", None)
 
-        self.conv1 = nn.Conv1d(input_channels, 128, kernel_size=15, padding=7) # These can be tuned, future updates will put this in initialization
+        self.conv1 = nn.Conv1d(input_channels, 128, kernel_size=15, padding=7)
         self.conv2 = nn.Conv1d(128, 128, kernel_size=7, padding=3)
         self.conv3 = nn.Conv1d(128, 128, kernel_size=3, padding=1)
 
@@ -552,8 +541,6 @@ class CNN_LSTM(nn.Module):
     def set_channel_mask(self, mask_1d=None):
         """
         Set or clear the per-channel multiplicative mask.
-        When set, the mask is applied after permuting to [B, C, T] and before
-        convolution layers. Useful for feature weighting.
 
         **Inputs** :
 
@@ -629,7 +616,7 @@ def nse_score(y_true, y_pred):
 
 
 def willmott_score(y_true, y_pred):
-   """
+    """
     Willmott's index of agreement for regression performance.
     This implementation uses the squared-error form.
     Returns NaN if the denominator is zero.
@@ -671,6 +658,7 @@ class Trainer:
     The trainer assumes the target scaler is used to map model outputs and
     dataset targets back to native units for metric computation.
     """
+
     def __init__(
         self,
         model,
@@ -956,38 +944,6 @@ def shap_sites_importance(
       across channels that belong to the same site.
 
     Expected SHAP shape after conversion: [S, T, C].
-
-    **Inputs** :
-
-        trainer : 'Trainer'
-            Trainer containing the trained model.
-
-        gdm : 'GaugeDataModel'
-            Prepared data model containing datasets and channel metadata.
-
-        background_size : 'int'
-            Number of background samples used by the gradient explainer.
-
-        nsamples : 'int'
-            Number of evaluation samples used to estimate importance.
-
-        use_test : 'bool'
-            If True and a non-empty test dataset exists, evaluate on test;
-            otherwise evaluate on train.
-
-        random_state : 'int'
-            Seed for reproducible subsampling.
-
-    **Outputs** :
-
-        agg : 'pandas.DataFrame'
-            Per-site importance table with columns:
-            ["rank","site_no","lat","lon","importance","importance_norm","n_channels"]
-
-    **Raises** :
-
-        ValueError
-            If SHAP output dimensions are unexpected or inconsistent with inputs.
     """
     rng = np.random.RandomState(int(random_state))
 
@@ -1068,31 +1024,8 @@ def export_shap_sites(shap_df, out_dir, *, horizon, min_norm_for_list=0.0):
     Export per-site SHAP importance products to CSV and plain-text site list.
 
     Files written:
-    - shap_sites.csv: 
-    - site_list.txt: 
-
-    **Inputs** :
-
-        shap_df : 'pandas.DataFrame'
-            Output of shap_sites_importance().
-
-        out_dir : 'str or pathlib.Path'
-            Output directory; created if needed.
-
-        horizon : 'int'
-            Forecast horizon identifier stored in outputs.
-
-        min_norm_for_list : 'float'
-            If > 0, only sites with importance_norm >= min_norm_for_list are written
-            to site_list.txt. 
-
-    **Outputs** :
-
-        shap_csv_path : 'pathlib.Path'
-            Path to the written shap_sites.csv. (per-site importance table with horizon column appended)
-
-        site_list_path : 'pathlib.Path'
-            Path to the written site_list.txt. (one site_no per line, optionally filtered by normalized importance)
+    - shap_sites.csv
+    - site_list.txt
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -1121,19 +1054,6 @@ def horizon_dir(run_root, h):
 
     Example:
         horizon_dir("runs", 3) -> Path("runs") / "H03"
-
-    **Inputs** :
-
-        run_root : 'str or pathlib.Path'
-            Root directory for horizon outputs.
-
-        h : 'int'
-            Forecast horizon.
-
-    **Outputs** :
-
-        path : 'pathlib.Path'
-            Horizon directory path.
     """
     return Path(run_root) / f"H{int(h):02d}"
 
@@ -1144,19 +1064,6 @@ def load_previous_shap_df(full_shap_root, h):
 
     If the CSV exists and contains "site_no" but not "site_no_norm", a normalized
     id column is added by stripping leading zeros.
-
-    **Inputs** :
-
-        full_shap_root : 'str or pathlib.Path'
-            Root directory containing horizon subfolders.
-
-        h : 'int'
-            Forecast horizon.
-
-    **Outputs** :
-
-        df : 'pandas.DataFrame or None'
-            Loaded dataframe, or None if the CSV does not exist.
     """
     shap_csv = horizon_dir(full_shap_root, h) / "shap_sites.csv"
     if not shap_csv.exists():
@@ -1175,39 +1082,12 @@ def get_allowed_sites_for_horizon(
     n_shap_by_h,
     default_n_shap,
 ):
-   """
+    """
     Select a subset of predictor sites for a given horizon using saved SHAP rankings.
+
     When site_selection_mode != "from_shap", returns None (meaning use all sites).
     When using "from_shap", this function loads shap_sites.csv for the horizon and
     returns the top-N site ids based on importance (or importance_norm if present).
-
-    **Inputs** :
-
-        h : 'int'
-            Forecast horizon.
-
-        site_selection_mode : 'str'
-            Site selection mode. Only "from_shap" triggers selection here.
-
-        full_shap_root : 'str or pathlib.Path'
-            Root directory containing horizon subfolders with shap_sites.csv.
-
-        n_shap_by_h : 'dict'
-            Mapping horizon -> number of sites to keep for that horizon.
-
-        default_n_shap : 'int'
-            Default number of sites to keep if not present in n_shap_by_h.
-
-    **Outputs** :
-
-        allowed_sites : 'list of str or None'
-            Normalized site numbers (leading zeros stripped) for the top-N sites,
-            or None if site_selection_mode is not "from_shap".
-
-    **Raises** :
-
-        FileNotFoundError
-            If site_selection_mode is "from_shap" but shap_sites.csv does not exist.
     """
     if site_selection_mode != "from_shap":
         return None
@@ -1239,24 +1119,8 @@ def prepare_shap_sites_used(shap_df_used, *, allowed_sites=None, n_sites=None):
     - Adds site_no_norm if missing
     - Filters to allowed_sites if provided (by site_no_norm)
     - Adds importance_norm if missing (max-normalized importance)
-    - Optionally truncates to top n_sites based on available importance column
+    - Optionally truncates to top n_sites
     - Returns a compact table of commonly used columns
-
-    **Inputs** :
-
-        shap_df_used : 'pandas.DataFrame or None'
-            SHAP dataframe (either freshly computed or loaded from disk).
-
-        allowed_sites : 'list of str or None'
-            Optional normalized site ids to keep.
-
-        n_sites : 'int or None'
-            Optional maximum number of rows to return.
-
-    **Outputs** :
-
-        df_out : 'pandas.DataFrame or None'
-            Filtered dataframe with a subset of columns, or None if no data.
     """
     if shap_df_used is None or len(shap_df_used) == 0:
         return None
@@ -1284,6 +1148,7 @@ def prepare_shap_sites_used(shap_df_used, *, allowed_sites=None, n_sites=None):
     cols_out = [c for c in ["site_no", "site_no_norm", "importance", "importance_norm", "lat", "lon"] if c in df.columns]
     return df[cols_out].copy() if cols_out else None
 
+
 # =============================================================================
 # Save run artifacts and summaries
 # =============================================================================
@@ -1303,36 +1168,10 @@ def save_run_artifacts(
 
     Files written:
     - predictions.csv : date, y_true, y_pred
-    - metrics.json    : scalar evaluation metrics (pretty-printed)
-    - history.json    : training history time series (pretty-printed)
+    - metrics.json    : scalar evaluation metrics
+    - history.json    : training history time series
     - model.pt        : torch state dict
     - scaler_y.pkl    : pickled sklearn scaler for inverse transforms
-
-    **Inputs** :
-
-        out_dir : 'str or pathlib.Path'
-            Output directory; created if needed.
-
-        dates_test : 'array-like'
-            Dates aligned to test predictions.
-
-        y_true, y_pred : 'array-like'
-            True and predicted values in original units.
-
-        metrics : 'dict'
-            Metric name -> scalar value.
-
-        history : 'dict'
-            Training history (lists of losses/metrics by epoch).
-
-        model_state_dict : 'dict'
-            PyTorch model state dict (typically model.state_dict()).
-
-        scaler_y : 'sklearn.preprocessing.StandardScaler'
-            Target scaler to serialize for later inverse transforms.
-
-    **Outputs** :
-        Files in  directory
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -1363,7 +1202,7 @@ def update_compute_summary(
     compute_summary,
     *,
     forecast_horizon=None,
-    fh=None,  # backward compatible 
+    fh=None,  # backward compatible
     n_params=None,
     train_time=None,
     eval_time=None,
@@ -1371,46 +1210,9 @@ def update_compute_summary(
     hp=None,
 ):
     """
-    Writes or update per-horizon results in a compute summary dictionary.
-    This helper normalizes numeric types (including numpy scalars) into JSON-safe
-    Python types and stores a record under:
+    Write or update per-horizon results in a compute summary dictionary.
+    Stores a record under:
         compute_summary["runs"][forecast_horizon]
-
-    **Inputs** :
-
-        compute_summary : 'dict'
-            Dictionary expected to contain a nested "runs" dict.
-
-        forecast_horizon : 'int or None'
-            Horizon key. If None, `fh` is used as an alias.
-
-        fh : 'int or None'
-            Alias for forecast_horizon.
-
-        n_params : 'int or None'
-            Trainable parameter count for the model.
-
-        train_time : 'float or None'
-            Training wall time in seconds.
-
-        eval_time : 'float or None'
-            Evaluation wall time in seconds.
-
-        metrics : 'dict or None'
-            Metric name -> value mapping.
-
-        hp : 'dict or None'
-            Hyperparameters dictionary; values are coerced to JSON-safe types.
-
-    **Outputs** :
-
-        compute_summary : 'dict'
-            Updated compute_summary dictionary.
-
-    **Raises** :
-
-        TypeError
-            If neither forecast_horizon nor fh is provided.
     """
     if forecast_horizon is None:
         forecast_horizon = fh
@@ -1442,30 +1244,20 @@ def update_compute_summary(
     }
     return compute_summary
 
+
 def save_compute_summary(results_root, compute_summary):
     """
-    Write a compute summary dictionary.
-
-    **Inputs** :
-
-        results_root : 'str or pathlib.Path'
-            Directory to write into; created if needed.
-
-        compute_summary : 'dict'
-            Summary dictionary (typically containing a "runs" mapping).
-
-    **Outputs** :
-       dictionary
+    Write a compute summary dictionary to compute_summary.json.
     """
     results_root = Path(results_root)
     results_root.mkdir(parents=True, exist_ok=True)
     with open(results_root / "compute_summary.json", "w", encoding="utf-8") as f:
         json.dump(compute_summary, f, indent=2)
-        
+
+
 # =============================================================================
 # Run per horizon model
 # =============================================================================
-
 def run_horizon(
     forecast_horizon,
     *,
@@ -1501,84 +1293,7 @@ def run_horizon(
     - Evaluates on the test split and returns metrics and predictions
     - Optionally computes SHAP site importance ("run") or loads previous SHAP results
     - Optionally writes run artifacts to out_dir
-
-    **Inputs** :
-
-        forecast_horizon : 'int'
-            Forecast horizon in days.
-
-        data_files : 'list'
-            Predictor data sources passed to GaugeDataModel.
-
-        use_csv_target : 'bool'
-            If True, load target from CSV. If False, load target from NWIS.
-
-        target_site : 'str'
-            NWIS site id for target retrieval (ignored if use_csv_target=True).
-
-        target_parameter_code : 'str'
-            NWIS parameter code for target retrieval (ignored if use_csv_target=True).
-
-        start_date, end_date : 'str'
-            Modeling window bounds ("YYYY-MM-DD").
-
-        tz : 'str'
-            Local timezone label used for daily index construction.
-
-        hp : 'dict'
-            Hyperparameters including:
-            - sequence_length, batch_size, cutoff_date, learning_rate, weight_decay,
-              epochs, max_grad_norm
-            - optionally: dropout_cnn, dropout_lstm, dropout_fc, rolling_window
-            - optionally (for SHAP): background_size, nsamples
-            - loss_function must be a callable criterion
-
-        device : 'str'
-            Torch device string ("cpu" or "cuda").
-
-        allowed_sites : 'list of str or None'
-            Optional normalized predictor site ids to keep.
-
-        csv_path : 'str or pathlib.Path or None'
-            Target CSV path when use_csv_target is True.
-
-        csv_date_col, csv_value_col : 'str or None'
-            CSV target column names.
-
-        shap_mode : {'none','run'}
-            If "run", compute SHAP and export outputs (when out_dir is set).
-
-        site_selection_mode : {'all','from_shap'}
-            If "from_shap", used to filter shap_sites_used based on allowed_sites.
-
-        full_shap_root : 'str or pathlib.Path or None'
-            Root directory to load previous shap_sites.csv if shap_mode is not "run".
-
-        n_sites : 'int or None'
-            Optional truncation for shap_sites_used.
-
-        out_dir : 'str or pathlib.Path or None'
-            If provided, run artifacts are written here.
-
-        shap_random_state : 'int'
-            Random seed for SHAP subsampling.
-
-        target_units : 'str'
-            Target unit mode. For NWIS targets, normalized before passing to load_target().
-
-        target_parameter_kind : 'str or None'
-            Optional hint for NWIS target column selection.
-
-    **Outputs** :
-
-        results : 'dict'
-            Dictionary containing:
-            - dates_test, y_true, y_pred
-            - metrics, history
-            - n_params, train_time, eval_time
-            - shap_sites_used (DataFrame or None)
     """
-    # Normalize target_units for NWIS targets.
     target_units_nwis = target_units
     if not use_csv_target:
         tu = str(target_units).lower()
@@ -1691,6 +1406,3 @@ def run_horizon(
         "eval_time": eval_time,
         "shap_sites_used": shap_used_out,
     }
-
-
-
