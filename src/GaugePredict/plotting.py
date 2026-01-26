@@ -647,7 +647,8 @@ def plot_shap_geoplot_grid(
         "axes.linewidth": 0.8,
     })
 
-    states_gdf = load_states(states_fp)
+    # Optional states boundaries
+    states_gdf = load_states(states_fp) if states_fp is not None else None
 
     frames = {}
     used_frames = {}
@@ -669,12 +670,14 @@ def plot_shap_geoplot_grid(
     norm = mcolors.Normalize(vmin=0.0, vmax=1.0)
 
     scatter_used_last = None
+    axs = []
 
     for j, h in enumerate(horizons):
         h = int(h)
         row = j // ncols
         col = j % ncols
         ax = fig.add_subplot(grid[row, col])
+        axs.append(ax)
 
         df_all = frames[h]
         df_used = used_frames[h]
@@ -704,15 +707,19 @@ def plot_shap_geoplot_grid(
         )
         scatter_used_last = scatter_used
 
-        states_gdf.boundary.plot(
-            ax=ax,
-            color="0.6",
-            linewidth=0.35,
-            zorder=0,
-        )
+        if states_gdf is not None:
+            states_gdf.boundary.plot(
+                ax=ax,
+                color="0.6",
+                linewidth=0.35,
+                zorder=0,
+            )
 
-        ax.set_xlim(*xlim)
-        ax.set_ylim(*ylim)
+        if xlim is not None:
+            ax.set_xlim(*xlim)
+        if ylim is not None:
+            ax.set_ylim(*ylim)
+
         ax.set_xticks([])
         ax.set_yticks([])
         ax.set_xlabel("")
@@ -747,7 +754,7 @@ def plot_shap_geoplot_grid(
     if show:
         plt.show()
 
-    return fig, ax
+    return fig, axs
 
 # =============================================================================
 # HUC plotting
