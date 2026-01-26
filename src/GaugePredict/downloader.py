@@ -22,23 +22,23 @@ from dataretrieval import nwis
 # =============================================================================
 
 def _rank_parameter_col(name, preference):
-    """
-        Rank a candidate NWIS daily-values column name based on keyword preference.
-        
-        **Inputs** :
-        
-            name : 'str'
-                Column name to rank.
-        
-            preference : 'list of str'
-                Ordered list of substrings to search for in the column name.
-        
-        **Outputs** :
-        
-            rank : 'int'
-                Rank index in `preference` for the first match; returns len(preference)
-                if no preference tag is found.
-    """
+        """
+            Rank a candidate NWIS daily-values column name based on keyword preference.
+            
+            **Inputs** :
+            
+                name : 'str'
+                    Column name to rank.
+            
+                preference : 'list of str'
+                    Ordered list of substrings to search for in the column name.
+            
+            **Outputs** :
+            
+                rank : 'int'
+                    Rank index in `preference` for the first match; returns len(preference)
+                    if no preference tag is found.
+        """
     name_l = str(name).lower()
     for i, tag in enumerate(preference):
         if tag in name_l:
