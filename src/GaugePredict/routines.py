@@ -358,7 +358,7 @@ def _series_from_parameter_dict(param_dict, *, tz="UTC"):
 
 
 def _normalize_site_id(site_no):
-        """
+    """
     Normalize a site identifier to a clean string (whitespace stripped).
 
     **Inputs** :
@@ -375,7 +375,7 @@ def _normalize_site_id(site_no):
 
 
 def _normalize_site_id_norm(site_no):
-        """
+     """
     Normalize a site identifier to a "normalized" form with leading zeros removed.
 
     **Inputs** :
