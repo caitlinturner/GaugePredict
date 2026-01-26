@@ -1,7 +1,7 @@
 ## GaugePredict (Beta Version - V 1.0.0 Release coming soon!)
 ---
 
-An open-source GitHub package that forecasts downstream gauge conditions using a hybrid neural network model.
+An open-source package that forecasts downstream gauge conditions using a hybrid neural network model.
 
 - Creates extended-range forecasts of downstream gauge conditions (e.g., water level, discharge) from daily to multi-week horizons (1–30 days).
 - Ingests and preprocesses basin-wide USGS gauge data by automatically downloading, aligning, and cleaning multi-site time series defined by user-selected HUC regions.
