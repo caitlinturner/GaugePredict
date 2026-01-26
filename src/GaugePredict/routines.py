@@ -375,7 +375,7 @@ def _normalize_site_id(site_no):
 
 
 def _normalize_site_id_norm(site_no):
-     """
+    """
     Normalize a site identifier to a "normalized" form with leading zeros removed.
 
     **Inputs** :
@@ -754,7 +754,7 @@ def process_data(raw_X_data, target_series, *, smooth_window_days=1):
 
 
 def generate_sequences(sequence_length, forecast_horizon, x_raw, y):
-       """
+    """
     Convert continuous predictor/target arrays into supervised learning sequences.
 
     **Inputs** :
