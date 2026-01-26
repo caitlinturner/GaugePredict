@@ -22,19 +22,19 @@ from dataretrieval import nwis
 # =============================================================================
 
 def _rank_parameter_col(name, preference):
-        """
+    """
         Rank a candidate NWIS daily-values column name based on keyword preference.
-    
+        
         **Inputs** :
-    
+        
             name : 'str'
                 Column name to rank.
-    
+        
             preference : 'list of str'
                 Ordered list of substrings to search for in the column name.
-    
+        
         **Outputs** :
-    
+        
             rank : 'int'
                 Rank index in `preference` for the first match; returns len(preference)
                 if no preference tag is found.
@@ -72,7 +72,7 @@ def _pick_parameter_col(df, parameter_code, *, parameter_kind=None):
     
             col : 'str or None'
                 Name of the selected column, or None if no matching column exists.
-    """
+        """
     matches = [c for c in df.columns if str(parameter_code) in str(c)]
     if not matches:
         return None
@@ -90,7 +90,7 @@ def _pick_parameter_col(df, parameter_code, *, parameter_kind=None):
 # =============================================================================
 
 def _ensure_datetime_index(df):
-        """
+    """
         Ensure a DataFrame is indexed by pandas.DatetimeIndex.
     
         Allows flexibility in dataframes, as dataframes that are sometimes already indexed by datetime, and
@@ -243,7 +243,7 @@ def load_target(
     tz="UTC",
     parameter_kind=None,
 ):
-   """
+    """
     Retrieve NWIS daily-values for a site and align to a provided daily index.
 
     This function downloads daily values (DV) from USGS NWIS for a single site
