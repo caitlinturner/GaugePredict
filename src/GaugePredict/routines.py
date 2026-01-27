@@ -555,7 +555,6 @@ def generate_sequences(sequence_length, forecast_horizon, x_raw, y):
         X_seq: [N, T, C]
         y_seq: [N, 1]
     """
-    x_seq, y_seq = [], []
     T = int(sequence_length)
     H = int(forecast_horizon)
 
@@ -566,6 +565,8 @@ def generate_sequences(sequence_length, forecast_horizon, x_raw, y):
     if n <= 0:
         raise ValueError("Not enough data to build sequences for the requested sequence_length and forecast_horizon")
 
+    x_seq = []
+    y_seq = []
     for i in range(n):
         x_seq.append(x_raw[:, i : i + T].T)
         y_seq.append(y[i + T + H - 1])

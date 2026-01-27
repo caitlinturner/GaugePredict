@@ -1,60 +1,84 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "GaugePredict"
-version = "0.1.0"
-description = "An open-source package that forecasts downstream gauge conditions using basin-scale data and a hybrid neural network model"
+version = "1.0.0"
+authors = [
+    {name = "Caitlin R. R. Turner", email = "cturn65@lsu.edu"},
+]
+description = "An open-source package that forecasts downstream gauge conditions using a hybrid neural network model"
 readme = "README.md"
-requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "Caitlin R. R. Turner, Jo Martin, Matthew Hiatt" }]
-
-# Runtime dependencies 
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Hydrology",
+]
+keywords = ["hydrology", "forecasting", "neural-network", "USGS", "gauge", "water-level"]
 dependencies = [
-  "numpy>=1.23",
-  "pandas>=2.0",
-  "scipy>=1.10",
+    "numpy>=1.20.0",
+    "pandas>=1.3.0",
+    "geopandas>=0.10.0",
+    "scikit-learn>=1.0.0",
+    "shap>=0.40.0",
+    "psutil>=5.8.0",
+    "matplotlib>=3.4.0",
+    "requests>=2.26.0",
+    "torch>=1.10.0",
+]
 
-  "matplotlib>=3.7",
-  "cmocean>=3.0",
-
-  "torch>=2.0",
-  "scikit-learn>=1.3",
-
-  "shap>=0.43",
-  "numba>=0.57",
-  "tqdm>=4.66",
-
-  "dataretrieval>=1.0",
-  "psutil>=5.9",
-
-  "geopandas>=0.14",
-  "contextily>=1.4",
-  "pyproj>=3.6",
-  "shapely>=2.0",
+[project.optional-dependencies]
+gpu = [
+    "torch>=1.10.0; platform_system != 'Linux' or sys_platform != 'darwin'",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "black>=22.0.0",
+    "flake8>=4.0.0",
+    "mypy>=0.950",
+    "build>=0.8.0",
+    "twine>=4.0.0",
+]
+docs = [
+    "sphinx>=4.5.0",
+    "sphinx-rtd-theme>=1.0.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/caitlinturner/GaugePredict"
-Repository = "https://github.com/caitlinturner/GaugePredict"
-Issues = "https://github.com/caitlinturner/GaugePredict/issues"
-
-[project.optional-dependencies]
-dev = [
-  "pytest>=7.4",
-  "pytest-cov>=4.1",
-  "build>=1.2",
-  "twine>=5.0",
-  "ruff>=0.5",
-  "black>=24.0",
-  "nbmake>=1.5",
-]
-
-[tool.setuptools]
-package-dir = { "" = "src" }
-include-package-data = true
+"Homepage" = "https://github.com/yourusername/GaugePredict"
+"Bug Tracker" = "https://github.com/yourusername/GaugePredict/issues"
+"Documentation" = "https://github.com/yourusername/GaugePredict#readme"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+GaugePredict = ["*.json", "*.csv"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--verbose --cov=src/GaugePredict --cov-report=term-missing"
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

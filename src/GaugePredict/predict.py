@@ -14,11 +14,21 @@ import numpy as np
 import pandas as pd
 import psutil
 import shap
-import torch
-import torch.nn as nn
+
+try:
+    import torch
+    from torch import nn
+    from torch.utils.data import DataLoader, Dataset
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    nn = None
+    DataLoader = None
+    Dataset = None
+    TORCH_AVAILABLE = False
+
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import StandardScaler
-from torch.utils.data import DataLoader, Dataset
 
 from .downloader import load_target
 from .routines import (
@@ -75,12 +85,12 @@ def get_hardware_info(device_str):
         "machine": platform.machine(),
         "processor": platform.processor(),
         "python_version": platform.python_version(),
-        "torch_version": torch.__version__,
+        "torch_version": getattr(torch, "__version__", None),
         "cpu_count": os.cpu_count(),
         "ram_gb": psutil.virtual_memory().total / 1024.0**3,
     }
 
-    if str(device_str) == "cuda" and torch.cuda.is_available():
+    if TORCH_AVAILABLE and str(device_str) == "cuda" and torch.cuda.is_available():
         props = torch.cuda.get_device_properties(0)
         info["gpu_name"] = props.name
         info["gpu_count"] = torch.cuda.device_count()
@@ -92,7 +102,7 @@ def get_hardware_info(device_str):
 # =============================================================================
 # Dataset wrapper
 # =============================================================================
-class SequenceDataset(Dataset):
+class SequenceDataset(object):
     """
     Minimal torch.utils.data.Dataset for sequence-to-one regression.
     Expects:
@@ -118,9 +128,23 @@ class SequenceDataset(Dataset):
             dataset : 'SequenceDataset'
                 Dataset containing float32 tensors X and y.
         """
-        self.X = torch.tensor(X, dtype=torch.float32)
-        self.y = torch.tensor(y, dtype=torch.float32)
-        self.input_channels = int(X.shape[2])
+        # store raw arrays; convert to tensors lazily if torch is available
+        self._X = np.asarray(X, dtype=np.float32)
+        self._y = np.asarray(y, dtype=np.float32)
+        self.input_channels = int(self._X.shape[2])
+
+        if TORCH_AVAILABLE:
+            # keep cached tensors for DataLoader compatibility
+            try:
+                self.X = torch.tensor(self._X, dtype=torch.float32)
+                self.y = torch.tensor(self._y, dtype=torch.float32)
+            except Exception:
+                # fallback: leave as numpy arrays
+                self.X = self._X
+                self.y = self._y
+        else:
+            self.X = self._X
+            self.y = self._y
 
     def __len__(self):
         """
@@ -131,7 +155,7 @@ class SequenceDataset(Dataset):
             n : 'int'
                 Number of samples (N).
         """
-        return int(self.X.shape[0])
+        return int(self._X.shape[0])
 
     def __getitem__(self, idx):
         """
@@ -147,7 +171,9 @@ class SequenceDataset(Dataset):
             X_i, y_i : 'tuple(torch.Tensor, torch.Tensor)'
                 Feature sequence [T, C] and target [1] (or scalar-shaped tensor).
         """
-        return self.X[idx], self.y[idx]
+        x = self.X[idx]
+        y = self.y[idx]
+        return x, y
 
 
 # =============================================================================
@@ -196,88 +222,34 @@ class GaugeDataModel:
     ):
         """
         Configures data pipeline but does not load data yet.
-
-        **Inputs** :
-
-            data_files : 'list'
-                Collection of predictor data sources consumed by routines.load_data().
-
-            target_site : 'str or None'
-                USGS site id for NWIS retrieval. Use None when using a CSV target.
-
-            start_date, end_date : 'str'
-                Overall modeling window bounds ("YYYY-MM-DD").
-
-            tz : 'str'
-                Timezone used to localize daily stamps prior to conversion to UTC
-                downstream (see routines.generate_full_index and downloader.load_target).
-
-            sequence_length : 'int'
-                Number of past days per input sample.
-
-            forecast_horizon : 'int'
-                Lead time in days for the target (prediction horizon).
-
-            cutoff_date : 'str or datetime-like'
-                Date used to split sequences into train/test.
-
-            parameter_code : 'str or None'
-                USGS parameter code for NWIS retrieval. Use None when using a CSV target.
-
-            batch_size : 'int'
-                Batch size for DataLoaders.
-
-            allowed_site_ids_norm : 'list of str or None'
-                Optional whitelist of predictor sites, compared against normalized ids
-                (leading zeros stripped).
-
-            target_csv_path : 'str or pathlib.Path or None'
-                If provided, target is loaded from CSV instead of NWIS.
-
-            target_csv_date_col : 'str or None'
-                Date column name for CSV target loading.
-
-            target_csv_value_col : 'str or None'
-                Value column name for CSV target loading.
-
-            target_units : 'str'
-                Unit mode for NWIS target conversion (passed through to load_target()).
-
-            target_parameter_kind : 'str or None'
-                Optional hint for NWIS column selection (passed through to load_target()).
-
-        **Outputs** :
-
-            GaugeDataModel : 'GaugeDataModel'
-                Configured instance; call setup() to prepare loaders.
         """
-    self.data_files = data_files
-    self.target_site = target_site
-    self.start_date = start_date
-    self.end_date = end_date
-    self.tz = tz
+        self.data_files = data_files
+        self.target_site = target_site
+        self.start_date = start_date
+        self.end_date = end_date
+        self.tz = tz
 
-    self.sequence_length = int(sequence_length)
-    self.forecast_horizon = int(forecast_horizon)
-    self.cutoff_date = cutoff_date
-    self.parameter_code = parameter_code
-    self.batch_size = int(batch_size)
+        self.sequence_length = int(sequence_length)
+        self.forecast_horizon = int(forecast_horizon)
+        self.cutoff_date = cutoff_date
+        self.parameter_code = parameter_code
+        self.batch_size = int(batch_size)
 
-    self.full_index = generate_full_index(start_date, end_date, localize=True, tz=tz)
+        self.full_index = generate_full_index(start_date, end_date, localize=True, tz=tz)
 
-    if allowed_site_ids_norm:
-        self.allowed_site_ids_norm = {str(s).lstrip("0") for s in allowed_site_ids_norm}
-    else:
-        self.allowed_site_ids_norm = None
+        if allowed_site_ids_norm:
+            self.allowed_site_ids_norm = {str(s).lstrip("0") for s in allowed_site_ids_norm}
+        else:
+            self.allowed_site_ids_norm = None
 
-    self.target_csv_path = Path(target_csv_path) if target_csv_path else None
-    self.target_csv_date_col = target_csv_date_col
-    self.target_csv_value_col = target_csv_value_col
+        self.target_csv_path = Path(target_csv_path) if target_csv_path else None
+        self.target_csv_date_col = target_csv_date_col
+        self.target_csv_value_col = target_csv_value_col
 
-    self.target_units = target_units
-    self.target_parameter_kind = target_parameter_kind
+        self.target_units = target_units
+        self.target_parameter_kind = target_parameter_kind
 
-    self.site_meta_df = None
+        self.site_meta_df = None
 
     def prepare_data(self):
         """
@@ -450,140 +422,99 @@ class GaugeDataModel:
         self.normalize()
         self.create_datasets()
 
-        use_cuda = torch.cuda.is_available()
-        self.train_dataloader = DataLoader(
-            self.train_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=0,
-            pin_memory=use_cuda,
-        )
-        self.test_dataloader = DataLoader(
-            self.test_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=0,
-            pin_memory=use_cuda,
-        )
+        if TORCH_AVAILABLE and DataLoader is not None:
+            use_cuda = torch.cuda.is_available()
+            self.train_dataloader = DataLoader(
+                self.train_dataset,
+                batch_size=self.batch_size,
+                shuffle=False,
+                num_workers=0,
+                pin_memory=use_cuda,
+            )
+            self.test_dataloader = DataLoader(
+                self.test_dataset,
+                batch_size=self.batch_size,
+                shuffle=False,
+                num_workers=0,
+                pin_memory=use_cuda,
+            )
+        else:
+            # fall back to None for environments without torch
+            self.train_dataloader = None
+            self.test_dataloader = None
 
 
+# =============================================================================
 # =============================================================================
 # Model
 # =============================================================================
-class CNN_LSTM(nn.Module):
-    """
-    CNN-LSTM sequence encoder for regression on daily predictor sequences.
-
-    Architecture:
-    - 1D convolutions operate over time on channelized inputs (C input channels)
-    - Average pooling and dropout regularize the CNN features
-    - An LSTM processes the CNN feature sequence
-    - A final linear head outputs one value per sample
-
-    Input expected shape:  [B, T, C]
-    Output shape:          [B, 1]
-
-    Optional feature:
-    - set_channel_mask() can apply a multiplicative mask per input channel to
-      ablate or weight channels during forward passes.
-    """
-
-    def __init__(self, input_channels, seq_len):
+if TORCH_AVAILABLE and nn is not None:
+    class CNN_LSTM(nn.Module):
         """
-        **Inputs** :
-
-            input_channels : 'int'
-                Number of predictor channels (C).
-
-            seq_len : 'int'
-                Sequence length (T). Included for interface compatibility; not
-                explicitly used by the current architecture.
-
-        **Outputs** :
-
-            model : 'CNN_LSTM'
-                Initialized model.
+        CNN-LSTM sequence encoder for regression on daily predictor sequences.
         """
-        super().__init__()
 
-        self.register_buffer("channel_mask", None)
+        def __init__(self, input_channels, seq_len):
+            super().__init__()
 
-        self.conv1 = nn.Conv1d(input_channels, 128, kernel_size=15, padding=7)
-        self.conv2 = nn.Conv1d(128, 128, kernel_size=7, padding=3)
-        self.conv3 = nn.Conv1d(128, 128, kernel_size=3, padding=1)
+            self.register_buffer("channel_mask", None)
 
-        self.pool = nn.AvgPool1d(kernel_size=3, stride=1, padding=1)
-        self.act = nn.ReLU()
-        self.dropout_cnn = nn.Dropout(p=0.05)
+            self.conv1 = nn.Conv1d(input_channels, 128, kernel_size=15, padding=7)
+            self.conv2 = nn.Conv1d(128, 128, kernel_size=7, padding=3)
+            self.conv3 = nn.Conv1d(128, 128, kernel_size=3, padding=1)
 
-        self.lstm = nn.LSTM(
-            input_size=128,
-            hidden_size=128,
-            num_layers=3,
-            dropout=0.2,
-            batch_first=True,
-            bidirectional=False,
-        )
+            self.pool = nn.AvgPool1d(kernel_size=3, stride=1, padding=1)
+            self.act = nn.ReLU()
+            self.dropout_cnn = nn.Dropout(p=0.05)
 
-        self.dropout_fc = nn.Dropout(p=0.35)
-        self.fc = nn.Linear(128, 1)
+            self.lstm = nn.LSTM(
+                input_size=128,
+                hidden_size=128,
+                num_layers=3,
+                dropout=0.2,
+                batch_first=True,
+                bidirectional=False,
+            )
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv1d):
-                nn.init.kaiming_uniform_(m.weight, nonlinearity="relu")
-                if m.bias is not None:
+            self.dropout_fc = nn.Dropout(p=0.35)
+            self.fc = nn.Linear(128, 1)
+
+            for m in self.modules():
+                if isinstance(m, nn.Conv1d):
+                    nn.init.kaiming_uniform_(m.weight, nonlinearity="relu")
+                    if m.bias is not None:
+                        nn.init.zeros_(m.bias)
+                elif isinstance(m, nn.Linear):
+                    nn.init.kaiming_uniform_(m.weight, nonlinearity="linear")
                     nn.init.zeros_(m.bias)
-            elif isinstance(m, nn.Linear):
-                nn.init.kaiming_uniform_(m.weight, nonlinearity="linear")
-                nn.init.zeros_(m.bias)
 
-    @torch.no_grad()
-    def set_channel_mask(self, mask_1d=None):
-        """
-        Set or clear the per-channel multiplicative mask.
+        @torch.no_grad()
+        def set_channel_mask(self, mask_1d=None):
+            if mask_1d is None:
+                self.channel_mask = None
+            else:
+                self.channel_mask = mask_1d.view(-1)
 
-        **Inputs** :
+        def forward(self, x):
+            x = x.permute(0, 2, 1)  # [B, T, C] -> [B, C, T]
 
-            mask_1d : 'torch.Tensor or None'
-                1D tensor of length C. If None, masking is disabled.
+            if self.channel_mask is not None:
+                x = x * self.channel_mask.view(1, -1, 1)
 
-        **Outputs** :
-            None
-        """
-        if mask_1d is None:
-            self.channel_mask = None
-        else:
-            self.channel_mask = mask_1d.view(-1)
+            x = self.act(self.conv1(x))
+            x = self.act(self.conv2(x))
+            x = self.act(self.conv3(x))
 
-    def forward(self, x):
-        """
-        Forward pass.
+            x = self.dropout_cnn(self.pool(x))
 
-        **Inputs** :
-
-            x : 'torch.Tensor'
-                Input tensor with shape [B, T, C].
-
-        **Outputs** :
-
-            y_hat : 'torch.Tensor'
-                Predicted values with shape [B, 1].
-        """
-        x = x.permute(0, 2, 1)  # [B, T, C] -> [B, C, T]
-
-        if self.channel_mask is not None:
-            x = x * self.channel_mask.view(1, -1, 1)
-
-        x = self.act(self.conv1(x))
-        x = self.act(self.conv2(x))
-        x = self.act(self.conv3(x))
-
-        x = self.dropout_cnn(self.pool(x))
-
-        x = x.permute(0, 2, 1)  # [B, T, 128]
-        lstm_out, _ = self.lstm(x)
-        last_timestep = lstm_out[:, -1, :]
-        return self.fc(self.dropout_fc(last_timestep))
+            x = x.permute(0, 2, 1)  # [B, T, 128]
+            lstm_out, _ = self.lstm(x)
+            last_timestep = lstm_out[:, -1, :]
+            return self.fc(self.dropout_fc(last_timestep))
+else:
+    class CNN_LSTM:
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError("PyTorch is not available in the current environment; CNN_LSTM requires torch.")
 
 
 # =============================================================================
@@ -706,6 +637,9 @@ class Trainer:
         """
         if evaluations is None:
             evaluations = {"r2": r2_score, "nse": nse_score, "willmott": willmott_score}
+
+        if not TORCH_AVAILABLE:
+            raise RuntimeError("PyTorch is not available in the current environment; Trainer requires torch.")
 
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model.to(self.device)

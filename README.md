@@ -25,6 +25,9 @@ We welcome contributions! Please email cturn65@lsu.edu or open an issue/pull req
 ('python -m pip install GaugePredict' installation through PyPI coming soon)
 
 ---
+
+*Conda and container instructions removed.*
+
 ## Workflow Assisted by Notebooks (located in examples)
 - **1) GaugePredict Data Downloader notebook (`downloader_notebook.ipynb`)**
   - Builds basin-scale **predictor datasets** from USGS gauge records for GaugePredict.

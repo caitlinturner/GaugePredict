@@ -19,6 +19,7 @@ from GaugePredict.predict import (
     save_compute_summary,
     update_compute_summary,
     get_hardware_info,
+    TORCH_AVAILABLE,
 )
 
 from GaugePredict.routines import get_project_root, resolve_under_project
@@ -43,7 +44,7 @@ predictor_type = "discharge"
 predictor_json_root = examples_dir / f"cached_data_{predictor_type}"
 
 results_dir = examples_dir / "results"
-full_shap_root = results_dir / f"{target_site}_test_final"
+full_shap_root = results_dir / f"{target_site}_function_test_full"
 
 use_csv_target = True
 csv_path = examples_dir / "bcs_wl.csv"
@@ -80,7 +81,7 @@ hp_defaults = dict(
     background_size=32,
     nsamples=128,
     cutoff_date=np.datetime64("2020-01-01"),
-    loss_function=torch.nn.MSELoss(),
+    loss_function=None,
 )
 
 hp_by_h = {
@@ -112,6 +113,10 @@ hp_by_h = {
              dropout_cnn=0.00, dropout_lstm=0.00, dropout_fc=0.35,
              weight_decay=5.25e-2, max_grad_norm=3.75),
 }
+
+# Set loss function now that torch is available
+if TORCH_AVAILABLE:
+    hp_defaults["loss_function"] = torch.nn.MSELoss()
 
 
 
