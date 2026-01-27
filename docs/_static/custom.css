@@ -1,0 +1,216 @@
+/* Custom styling for GaugePredict documentation */
+
+:root {
+    --primary-color: #0066cc;
+    --secondary-color: #4a90e2;
+    --accent-color: #ff6b6b;
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+}
+
+/* Main container and typography */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+h1 {
+    border-bottom: 3px solid var(--primary-color);
+    padding-bottom: 0.3em;
+    font-size: 2.5em;
+}
+
+h2 {
+    border-left: 4px solid var(--secondary-color);
+    padding-left: 0.5em;
+}
+
+/* Code styling */
+code, pre {
+    background-color: #f5f5f5;
+    border-radius: 4px;
+}
+
+pre {
+    padding: 1em;
+    border-left: 4px solid var(--secondary-color);
+    background-color: #f8f9fa;
+}
+
+code {
+    color: var(--accent-color);
+    padding: 0.2em 0.4em;
+    font-size: 0.9em;
+}
+
+a {
+    color: var(--secondary-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+/* Admonitions (notes, warnings, etc.) */
+.admonition {
+    padding: 1em;
+    border-radius: 4px;
+    border-left: 4px solid var(--secondary-color);
+    background-color: #f0f7ff;
+    margin: 1.5em 0;
+}
+
+.admonition.note {
+    border-left-color: #0066cc;
+    background-color: #f0f7ff;
+}
+
+.admonition.warning {
+    border-left-color: var(--warning-color);
+    background-color: #fff8f0;
+}
+
+.admonition.attention,
+.admonition.caution,
+.admonition.danger,
+.admonition.error {
+    border-left-color: var(--accent-color);
+    background-color: #fff0f0;
+}
+
+.admonition.hint,
+.admonition.important,
+.admonition.tip {
+    border-left-color: var(--success-color);
+    background-color: #f0fff4;
+}
+
+.admonition-title {
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 0.5em;
+}
+
+/* List styling */
+ul, ol {
+    margin: 1em 0;
+    padding-left: 2em;
+}
+
+li {
+    margin: 0.5em 0;
+}
+
+/* Table styling */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+}
+
+table thead {
+    background-color: #f5f5f5;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+table th, table td {
+    padding: 0.75em;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* TOC styling */
+.toctree-wrapper {
+    background-color: #f9f9f9;
+    padding: 1em;
+    border-radius: 4px;
+    margin: 1.5em 0;
+}
+
+.toctree-wrapper ul {
+    margin: 0;
+}
+
+/* Function/Class definition styling */
+.py-function, .py-class, .py-method {
+    background-color: #f5f5f5;
+    padding: 1em;
+    border-radius: 4px;
+    margin: 1em 0;
+    border-left: 4px solid var(--secondary-color);
+}
+
+dt {
+    background-color: #f5f5f5;
+    padding: 0.5em;
+    border-left: 3px solid var(--secondary-color);
+    margin-top: 1em;
+}
+
+dd {
+    margin-left: 2em;
+    margin-top: 0.5em;
+}
+
+/* Signature styling */
+.sig {
+    font-family: 'Courier New', monospace;
+    background-color: #f8f9fa;
+    padding: 0.5em 1em;
+    border-radius: 4px;
+    margin: 0.5em 0;
+    overflow-x: auto;
+}
+
+/* Section styling */
+.section {
+    margin: 2em 0;
+}
+
+/* Index styling */
+.genindex-jumpbox {
+    margin: 1.5em 0;
+}
+
+/* Print-friendly styles */
+@media print {
+    a {
+        text-decoration: underline;
+    }
+    
+    .admonition {
+        border: 1px solid #ccc;
+        page-break-inside: avoid;
+    }
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.8em;
+    }
+    
+    h2 {
+        font-size: 1.5em;
+    }
+    
+    pre {
+        overflow-x: auto;
+        font-size: 0.9em;
+    }
+}

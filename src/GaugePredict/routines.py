@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-routines.py
+Core utility functions and data processing routines used across GaugePredict.
 
-Core utilities for GaugePredict functions downloader.py, predict.py, and plotting.py.
+Features:
+    - Data loading and preprocessing
+    - File I/O operations
+    - Configuration management
+    - Common computational tasks
+
+Used by downloader.py, predict.py, and plotting.py.
 """
 
 from __future__ import division, print_function, absolute_import

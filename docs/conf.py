@@ -2,7 +2,9 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../src'))
+
+# Add src directory to path so GaugePredict can be imported
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 # -- Project information -----------------------------------------------------
 project = 'GaugePredict'
@@ -17,6 +19,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
+    'sphinx_design',
 ]
 
 templates_path = ['_templates']
@@ -25,6 +28,24 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
+# ReadTheDocs theme options
+html_theme_options = {
+    'logo_only': False,
+    'prev_next_buttons_location': 'bottom',
+    'style_external_links': True,
+    'collapse_navigation': True,
+    'sticky_navigation': True,
+    'navigation_depth': 4,
+    'titles_only': False,
+}
+
+html_logo = None
+html_favicon = None
+
+# Add custom CSS
+def setup(app):
+    app.add_css_file('custom.css')
 
 # -- Extension configuration -------------------------------------------------
 napoleon_google_docstring = False
@@ -43,3 +64,6 @@ autodoc_default_options = {
     'undoc-members': True,
     'show-inheritance': True,
 }
+
+# Mock optional heavy deps so autodoc succeeds on RTD build without full stack
+autodoc_mock_imports = ['dataretrieval', 'shap', 'geopandas', 'contextily', 'cmocean']

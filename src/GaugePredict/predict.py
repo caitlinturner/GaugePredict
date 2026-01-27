@@ -1,6 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-predict.py
+Provides neural network models and prediction functions for forecasting downstream
+gauge conditions. Includes support for training, inference, and SHAP explainability.
+
+Features:
+    - Hybrid neural network models for discharge prediction
+    - Model training and validation utilities
+    - Batch prediction capabilities
+    - SHAP value computation for model interpretability
+    - PyTorch-based deep learning infrastructure
 """
 
 import json
@@ -105,12 +113,13 @@ def get_hardware_info(device_str):
 class SequenceDataset(object):
     """
     Minimal torch.utils.data.Dataset for sequence-to-one regression.
-    Expects:
-        X: [N, T, C] float-like array
-        y: [N, 1] or [N] float-like array
 
-    Stores X and y as float32 tensors and exposes input_channels for model
-    construction.
+    Expects:
+        - X: [N, T, C] float-like array
+        - y: [N, 1] or [N] float-like array
+
+    Stores X and y as float32 tensors and exposes `input_channels` for model
+    consumption.
     """
 
     def __init__(self, X, y):
@@ -128,18 +137,15 @@ class SequenceDataset(object):
             dataset : 'SequenceDataset'
                 Dataset containing float32 tensors X and y.
         """
-        # store raw arrays; convert to tensors lazily if torch is available
         self._X = np.asarray(X, dtype=np.float32)
         self._y = np.asarray(y, dtype=np.float32)
         self.input_channels = int(self._X.shape[2])
 
         if TORCH_AVAILABLE:
-            # keep cached tensors for DataLoader compatibility
             try:
                 self.X = torch.tensor(self._X, dtype=torch.float32)
                 self.y = torch.tensor(self._y, dtype=torch.float32)
             except Exception:
-                # fallback: leave as numpy arrays
                 self.X = self._X
                 self.y = self._y
         else:
@@ -185,19 +191,21 @@ class GaugeDataModel:
     Future updates will allow for CNN and LSTM separation and layer number configuration
     in notebooks
 
-    Framework:
-    - Builds a full daily time index for the modeling window.
-    - Loads predictor channels (multiple gauge sites) and a single target series.
-    - Converts predictors + target to aligned arrays, then constructs sliding
-      sequences for supervised learning.
-    - Splits sequences into train/test using a cutoff date.
-    - Standardizes predictors per channel using training statistics.
-    - Standardizes target using sklearn.StandardScaler.
+        Framework:
 
-    Key shapes:
-        processed_X_data: [C, T]
-        X_seq: [N, L, C]   (L = sequence_length)
-        y_seq: [N, 1] or [N]
+        - Builds a full daily time index for the modeling window.
+        - Loads predictor channels (multiple gauge sites) and a single target series.
+        - Converts predictors + target to aligned arrays, then constructs sliding
+            sequences for supervised learning.
+        - Splits sequences into train/test using a cutoff date.
+        - Standardizes predictors per channel using training statistics.
+        - Standardizes target using sklearn.StandardScaler.
+
+        Key shapes:
+
+        - processed_X_data: [C, T]
+        - X_seq: [N, L, C]   (L = sequence_length)
+        - y_seq: [N, 1] or [N]
     """
 
     def __init__(
@@ -360,25 +368,18 @@ class GaugeDataModel:
         Predictors (X) are standardized per channel using mean and standard
         deviation computed over the training samples and time dimension.
         Targets (y) are standardized with sklearn.StandardScaler.
-
-        **Inputs** :
-            None
-
-        **Outputs** :
-            None (populates X_train_norm, X_test_norm, scaler_y, y_train_scaled, y_test_scaled)
         """
-        X_mean = self.X_train.mean(axis=(0, 1), keepdims=True)
-        X_std = self.X_train.std(axis=(0, 1), keepdims=True) + 1e-8
+        X_train_flat = self.X_train.reshape(-1, self.X_train.shape[-1])
+        self.X_mean = np.nanmean(X_train_flat, axis=0)
+        self.X_std = np.nanstd(X_train_flat, axis=0)
+        self.X_std[self.X_std == 0] = 1.0
 
-        self.X_train_norm = (self.X_train - X_mean) / X_std
-        self.X_test_norm = (self.X_test - X_mean) / X_std
+        self.X_train_norm = (self.X_train - self.X_mean) / self.X_std
+        self.X_test_norm = (self.X_test - self.X_mean) / self.X_std
 
         self.scaler_y = StandardScaler()
-        ytr = np.asarray(self.y_train, dtype=float).reshape(-1, 1)
-        yte = np.asarray(self.y_test, dtype=float).reshape(-1, 1)
-
-        self.y_train_scaled = self.scaler_y.fit_transform(ytr).astype(np.float32)
-        self.y_test_scaled = self.scaler_y.transform(yte).astype(np.float32)
+        self.y_train_scaled = self.scaler_y.fit_transform(self.y_train)
+        self.y_test_scaled = self.scaler_y.transform(self.y_test)
 
     def create_datasets(self):
         """
@@ -387,12 +388,6 @@ class GaugeDataModel:
         Site ids are stored in both raw and normalized forms:
         - site_no_raw: original strings (may include leading zeros)
         - site_no_norm: leading zeros stripped
-
-        **Inputs** :
-            None
-
-        **Outputs** :
-            None (populates train_dataset, test_dataset, site_ids, site_ids_raw)
         """
         self.train_dataset = SequenceDataset(self.X_train_norm, self.y_train_scaled)
         self.test_dataset = SequenceDataset(self.X_test_norm, self.y_test_scaled)
@@ -868,6 +863,7 @@ def shap_sites_importance(
     Compute SHAP attributions and aggregate importance to gauge (site) level.
 
     Framework:
+
     - Moves the trained model to CPU and sets eval() for SHAP computation.
     - Selects a random subset of training samples for SHAP background.
     - Selects a random subset of samples for evaluation (test set by default).
@@ -1011,34 +1007,63 @@ def load_previous_shap_df(full_shap_root, h):
 def get_allowed_sites_for_horizon(
     h,
     *,
-    site_selection_mode,
-    full_shap_root,
-    n_shap_by_h,
-    default_n_shap,
+    shap_root=None,
+    site_selection_mode="all",
+    n_shap_by_h=None,
+    default_n_shap=20,
 ):
     """
-    Select a subset of predictor sites for a given horizon using saved SHAP rankings.
+    Return the list of allowed predictor site IDs for a given forecast horizon.
 
-    When site_selection_mode != "from_shap", returns None (meaning use all sites).
-    When using "from_shap", this function loads shap_sites.csv for the horizon and
-    returns the top-N site ids based on importance (or importance_norm if present).
+    If ``site_selection_mode`` is "from_shap", this reads the per-horizon
+    ``shap_sites.csv`` file (under ``shap_root/Hxx/``) and returns the top sites
+    by SHAP importance. Otherwise, returns ``None`` to indicate that all sites
+    are allowed.
+
+    Parameters
+    ----------
+    h : int or str
+        Forecast horizon (days ahead).
+    shap_root : pathlib.Path or str, optional
+        Root directory containing per-horizon SHAP outputs.
+    site_selection_mode : str, optional
+        Either "from_shap" to limit to top sites or anything else to allow all.
+    n_shap_by_h : dict, optional
+        Mapping horizon -> number of sites to keep. Falls back to ``default_n_shap``.
+    default_n_shap : int, optional
+        Default number of sites to keep when ``n_shap_by_h`` is not provided.
+
+    Returns
+    -------
+    list[str] or None
+        List of site_no_norm values (leading zeros stripped) or ``None``.
     """
-    if site_selection_mode != "from_shap":
+    if str(site_selection_mode).lower() != "from_shap":
         return None
 
-    shap_csv = horizon_dir(full_shap_root, h) / "shap_sites.csv"
+    if shap_root is None:
+        raise ValueError("shap_root must be provided when site_selection_mode='from_shap'")
+
+    shap_csv = horizon_dir(shap_root, h) / "shap_sites.csv"
     if not shap_csv.exists():
         raise FileNotFoundError(
             f"site_selection_mode='from_shap' but shap_sites.csv not found for H={h}: {shap_csv}"
         )
 
     df = pd.read_csv(shap_csv)
-    n_sites = int(n_shap_by_h.get(int(h), int(default_n_shap)))
+
+    if "site_no_norm" not in df.columns and "site_no" in df.columns:
+        df["site_no_norm"] = df["site_no"].astype(str).str.lstrip("0")
+
     imp_col = "importance_norm" if "importance_norm" in df.columns else "importance"
+    n_sites = int((n_shap_by_h or {}).get(int(h), int(default_n_shap)))
+
+    if imp_col not in df.columns:
+        return df.get("site_no_norm", pd.Series(dtype=str)).astype(str).str.lstrip("0").tolist()
 
     return (
         df.sort_values(imp_col, ascending=False)
-        .head(n_sites)["site_no"]
+        .head(n_sites)["site_no_norm"]
         .astype(str)
         .str.lstrip("0")
         .tolist()
@@ -1057,6 +1082,8 @@ def prepare_shap_sites_used(shap_df_used, *, allowed_sites=None, n_sites=None):
     - Returns a compact table of commonly used columns
     """
     if shap_df_used is None or len(shap_df_used) == 0:
+
+
         return None
 
     df = shap_df_used.copy()
@@ -1145,7 +1172,9 @@ def update_compute_summary(
 ):
     """
     Write or update per-horizon results in a compute summary dictionary.
+
     Stores a record under:
+
         compute_summary["runs"][forecast_horizon]
     """
     if forecast_horizon is None:

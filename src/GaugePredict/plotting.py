@@ -230,6 +230,7 @@ def load_saved_horizon_run(results_root, h, *, verbose=True):
     Load saved model outputs for a single forecast horizon.
 
     Expects the horizon directory to contain:
+      
       - predictions.csv (date, y_true, y_pred)
       - metrics.json
       - history.json
@@ -254,12 +255,14 @@ def load_saved_horizon_run(results_root, h, *, verbose=True):
 
         run : 'dict or None'
             Dictionary containing:
+
               - dates_test : numpy array of datetime-like (tz-naive)
               - y_true_test, y_pred_test : numpy arrays
               - metr : dict of metrics
               - history : dict of training curves
               - scaler_y : loaded scaler object
               - model_path : pathlib.Path to model.pt
+
             Returns None if required files are missing.
     """
     d = horizon_dir(results_root, h)
@@ -1216,16 +1219,19 @@ def plot_training_and_timeseries(
 ):
     """
     Plot training curves and aligned observed/predicted test time series.
+
     - Top row: per-epoch curves for selected metrics (train_loss, r2, willmott)
       for all horizons.
     - Bottom row: observed vs predicted time series on the common test date
       intersection.
 
     Discharge scaling:
+
     - If parameter_label indicates a 10^4 scaling, observed/predicted values are
       scaled by 1e-4 before plotting to match the label.
 
     Smoothing:
+
     - roll_window_days defines a centered rolling window (in days) for display
       smoothing of both observations and predictions.
 
