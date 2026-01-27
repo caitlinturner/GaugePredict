@@ -1,0 +1,58 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "GaugePredict",
+  "description": "An open-source package that forecasts downstream gauge conditions using a hybrid neural network model",
+  "identifier": "https://pypi.org/project/GaugePredict/",
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "Caitlin R. R.",
+      "familyName": "Turner",
+      "email": "cturn65@lsu.edu",
+      "@id": "https://orcid.org/0000-0000-0000-0000"
+    }
+  ],
+  "citation": "https://github.com/caitlinturner/GaugePredict",
+  "codeRepository": "https://github.com/caitlinturner/GaugePredict",
+  "dateCreated": "2026-01-27",
+  "dateModified": "2026-01-27",
+  "datePublished": "2026-01-27",
+  "keywords": [
+    "hydrology",
+    "forecasting",
+    "neural-networks",
+    "USGS",
+    "gauge",
+    "water-level",
+    "discharge",
+    "CNN-LSTM",
+    "SHAP"
+  ],
+  "license": "https://spdx.org/licenses/MIT",
+  "programmingLanguage": [
+    "Python"
+  ],
+  "runtimePlatform": [
+    "Python 3.8",
+    "Python 3.9",
+    "Python 3.10",
+    "Python 3.11"
+  ],
+  "softwareRequirements": [
+    "numpy>=1.20.0",
+    "pandas>=1.3.0",
+    "geopandas>=0.10.0",
+    "torch>=1.10.0",
+    "scikit-learn>=1.0.0",
+    "shap>=0.40.0",
+    "psutil>=5.8.0",
+    "matplotlib>=3.4.0",
+    "requests>=2.26.0"
+  ],
+  "version": "1.0.0",
+  "developmentStatus": "active",
+  "downloadUrl": "https://pypi.org/project/GaugePredict/",
+  "issueTracker": "https://github.com/caitlinturner/GaugePredict/issues",
+  "readme": "https://github.com/caitlinturner/GaugePredict/blob/main/README.md"
+}

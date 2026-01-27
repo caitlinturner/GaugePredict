@@ -1,4 +1,9 @@
-## GaugePredict (Beta Version - V 1.0.0 Release coming soon!)
+# GaugePredict
+
+[![PyPI version](https://badge.fury.io/py/GaugePredict.svg)](https://badge.fury.io/py/GaugePredict)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ---
 
 An open-source package that forecasts downstream gauge conditions using a hybrid neural network model.
@@ -17,16 +22,40 @@ We welcome contributions! Please email cturn65@lsu.edu or open an issue/pull req
 ---
 
 ## Installation
+
+### Via PyPI (Recommended)
 ```bash
-#git clone https://github.com/<your-username>/GaugePredict.git
-#cd GaugePredict
-#pip install -e .
+pip install GaugePredict
 ```
-('python -m pip install GaugePredict' installation through PyPI coming soon)
+
+### From Source (Development)
+```bash
+git clone https://github.com/caitlinturner/GaugePredict.git
+cd GaugePredict
+pip install -e ".[dev]"
+```
+
+### With Conda Environment
+```bash
+cd GaugePredict
+conda env create -f environment.yml
+conda activate gaugepredict-dev
+```
+
+### GPU Support (Optional)
+For CUDA-enabled GPU acceleration:
+```bash
+pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+```
+
+### Requirements
+- Python ≥ 3.8
+- PyTorch ≥ 1.10.0
+- NumPy, Pandas, GeoPandas
+- Scikit-learn, SHAP, Matplotlib
+- See `requirements.txt` for complete list
 
 ---
-
-*Conda and container instructions removed.*
 
 ## Workflow Assisted by Notebooks (located in examples)
 - **1) GaugePredict Data Downloader notebook (`downloader_notebook.ipynb`)**
