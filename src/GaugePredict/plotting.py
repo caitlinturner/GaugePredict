@@ -1442,3 +1442,4 @@ def plot_training_and_timeseries(
         fig.text(0.125, 0.45, "Test data", fontsize=8)
 
     return fig, ax_ts
+    
