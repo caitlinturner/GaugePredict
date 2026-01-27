@@ -49,20 +49,15 @@ Train a neural network model to forecast discharge:
     
     print(f"Model Performance: R² = {results['metrics']['r2']}")
 
-Making Predictions
-------------------
+Working With Results
+--------------------
 
-Generate forecasts using a trained model:
+The ``results`` dict returned by ``run_horizon`` includes:
 
-.. code-block:: python
-
-    from GaugePredict.predict import load_model, predict
-    
-    # Load a trained model
-    model = load_model("path/to/model.pt")
-    
-    # Make predictions
-    forecast = predict(model, historical_data)
+- ``metrics``: R², NSE, and Willmott index for the test split
+- ``y_pred`` / ``y_true``: arrays in original units
+- ``history``: per-epoch training metrics
+- ``model_path``: where the trained model is saved (if you set ``out_dir``)
 
 Complete Workflow
 =================
