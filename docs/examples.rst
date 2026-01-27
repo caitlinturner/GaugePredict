@@ -1,7 +1,7 @@
 Examples
 ========
 
-The ``Examples/`` directory contains complete workflow demonstrations:
+The ``examples/`` directory contains complete workflow demonstrations:
 
 Jupyter Notebooks
 -----------------

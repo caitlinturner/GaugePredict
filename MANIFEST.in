@@ -10,7 +10,7 @@ include requirements-dev.txt
 recursive-include Examples *.ipynb *.py *.csv *.json
 
 # Include shapefiles
-recursive-include Examples/shapefiles *.shp *.shx *.dbf *.prj *.cpg *.xml
+recursive-include examples/shapefiles *.shp *.shx *.dbf *.prj *.cpg *.xml
 
 # Exclude Python cache and build artifacts
 global-exclude __pycache__

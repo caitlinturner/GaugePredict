@@ -35,7 +35,7 @@ Train a forecast model:
 Complete Workflow
 -----------------
 
-See the example notebooks in ``Examples/``:
+See the example notebooks in ``examples/``:
 
 1. **Data Preparation** (``downloader_notebook.ipynb``)
    - Download and preprocess basin-wide USGS data

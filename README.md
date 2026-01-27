@@ -8,7 +8,7 @@
 
 An open-source package that forecasts downstream gauge conditions using a hybrid neural network.
 
-![HUC map overview](Examples/map_hucs.png)
+![HUC map overview](examples/figures/map_hucs.png)
 *Example of Hydrologic Unit Code (HUC) selection for a desired basin.*
 
 - Creates extended-range forecasts of downstream gauge conditions (e.g., water level, discharge) from daily to multi-week horizons (1–30 days tested).
@@ -19,10 +19,10 @@ An open-source package that forecasts downstream gauge conditions using a hybrid
 - Can be applied to forecast flows for water management decisions.
 - Comes with walkthrough notebooks that make dataset building, training, and figure generation easy to follow.
 
-![Baton Rouge missing data example](Examples/BR_missing.png)
+![Baton Rouge missing data example](examples/figures/BR_missing.png)
 *Example handling of missing Baton Rouge observations using trained GaugePredict estimates.*
 
-![Bonnet Carré Spillway forecasts](Examples/bcs_forecasts1.png)
+![Bonnet Carré Spillway forecasts](examples/figures/bcs_forecasts1.png)
 *Forecast example for operational and non-operational flows for the Bonnet Carré Spillway site.*
 
 
