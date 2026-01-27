@@ -574,3 +574,4 @@ def generate_sequences(sequence_length, forecast_horizon, x_raw, y):
         np.asarray(x_seq, dtype=np.float32),
         np.asarray(y_seq, dtype=np.float32).reshape(-1, 1),
     )
+    
