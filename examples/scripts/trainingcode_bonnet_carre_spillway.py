@@ -47,7 +47,7 @@ results_dir = examples_dir / "results"
 full_shap_root = results_dir / f"{target_site}_function_test_full"
 
 use_csv_target = True
-csv_path = examples_dir / "bcs_wl.csv"
+csv_path = examples_dir / "data" / "bcs_wl.csv"
 csv_date_col = "date"
 csv_value_col = "wl"
 
