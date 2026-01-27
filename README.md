@@ -6,15 +6,28 @@
 
 
 
-An open-source package that forecasts downstream gauge conditions using a hybrid neural network model.
+An open-source package that forecasts downstream gauge conditions using a hybrid neural network.
 
-- Creates extended-range forecasts of downstream gauge conditions (e.g., water level, discharge) from daily to multi-week horizons (1–30 days).
-- Ingests and preprocesses basin-wide USGS gauge data by automatically downloading, aligning, and cleaning multi-site time series defined by user-selected HUC regions.
+![HUC map overview](Examples/map_hucs.png)
+*Example of Hydrologic Unit Code (HUC) selection for a desired basin.*
+
+- Creates extended-range forecasts of downstream gauge conditions (e.g., water level, discharge) from daily to multi-week horizons (1–30 days tested).
+- Ingests and preprocesses basin-wide U.S. Geological Survey gauge data by automatically downloading, aligning, and cleaning multi-site time series defined by user-selected HUC regions.
   - Synchronizes all sites to a continuous daily index and fills missing days so datasets are sequence-model ready.
-- Trains horizon-specific CNN–LSTM models and uses SHAP-selected gauges to reduce inputs, enabling rapid forecasts on a standard machine.
+- Trains a hybrid neural network model (CNN–LSTM) and uses SHAP-selected gauges to reduce inputs, enabling rapid forecasts on a standard machine.
 - Supports continuity during data interruptions by using trained models to fill estimates when target-gauge observations are missing due to down gauges.
-- Can be applied to forecast diversion-related flows for water management decisions.
+- Can be applied to forecast flows for water management decisions.
 - Comes with walkthrough notebooks that make dataset building, training, and figure generation easy to follow.
+
+![Baton Rouge missing data example](Examples/BR_missing.png)
+*Example handling of missing Baton Rouge observations using trained GaugePredict estimates.*
+
+![Bonnet Carré Spillway forecasts](Examples/bcs_forecasts1.png)
+*Forecast example for operational and non-operational flows for the Bonnet Carré Spillway site.*
+
+
+** An update to address the dependecies for the U.S. Geological Survey's switch from dataRetrival.NWIS to dataRetrival.waterdata will be updated in the coming weeks. All functions are working at this time.**
+
 
 ## Installation
 
@@ -85,12 +98,14 @@ pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu12
       - Reads SHAP artifacts from the SHAP results folder.
       - Plots a map grid of predictor sites and SHAP-selected subsets by horizon, with a target-site marker.
 
+## Documentation
 
-
+- [Full API Documentation](https://gaugepredict.readthedocs.io) (ReadTheDocs)
+- [Contributing Guide](CONTRIBUTING.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 This project is licensed under the MIT License
-
 
 ## Citation
 
