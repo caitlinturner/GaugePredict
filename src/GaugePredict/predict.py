@@ -251,33 +251,33 @@ class GaugeDataModel:
             GaugeDataModel : 'GaugeDataModel'
                 Configured instance; call setup() to prepare loaders.
         """
-    self.data_files = data_files
-    self.target_site = target_site
-    self.start_date = start_date
-    self.end_date = end_date
-    self.tz = tz
+        self.data_files = data_files
+        self.target_site = target_site
+        self.start_date = start_date
+        self.end_date = end_date
+        self.tz = tz
 
-    self.sequence_length = int(sequence_length)
-    self.forecast_horizon = int(forecast_horizon)
-    self.cutoff_date = cutoff_date
-    self.parameter_code = parameter_code
-    self.batch_size = int(batch_size)
+        self.sequence_length = int(sequence_length)
+        self.forecast_horizon = int(forecast_horizon)
+        self.cutoff_date = cutoff_date
+        self.parameter_code = parameter_code
+        self.batch_size = int(batch_size)
 
-    self.full_index = generate_full_index(start_date, end_date, localize=True, tz=tz)
+        self.full_index = generate_full_index(start_date, end_date, localize=True, tz=tz)
 
-    if allowed_site_ids_norm:
-        self.allowed_site_ids_norm = {str(s).lstrip("0") for s in allowed_site_ids_norm}
-    else:
-        self.allowed_site_ids_norm = None
+        if allowed_site_ids_norm:
+            self.allowed_site_ids_norm = {str(s).lstrip("0") for s in allowed_site_ids_norm}
+        else:
+            self.allowed_site_ids_norm = None
 
-    self.target_csv_path = Path(target_csv_path) if target_csv_path else None
-    self.target_csv_date_col = target_csv_date_col
-    self.target_csv_value_col = target_csv_value_col
+        self.target_csv_path = Path(target_csv_path) if target_csv_path else None
+        self.target_csv_date_col = target_csv_date_col
+        self.target_csv_value_col = target_csv_value_col
 
-    self.target_units = target_units
-    self.target_parameter_kind = target_parameter_kind
+        self.target_units = target_units
+        self.target_parameter_kind = target_parameter_kind
 
-    self.site_meta_df = None
+        self.site_meta_df = None
 
     def prepare_data(self):
         """
