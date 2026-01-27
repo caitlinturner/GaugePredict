@@ -9,11 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated author information with all three co-authors
-- Updated citation metadata with correct ORCID IDs and affiliations
-- Updated email addresses for package maintainers
 
 ### Fixed
-- Corrected paper.bib journal citation for JGR submission
+- Corrected paper.bib 
 
 ## [1.0.0] - 2026-01-27
 
@@ -25,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - USGS data downloader with automatic preprocessing
 - Example notebooks for complete workflow
 - PyPI package distribution
-- Comprehensive documentation and citation files
+- Documentation and citation files
 
 ### Features
 - Multi-site time series ingestion and alignment

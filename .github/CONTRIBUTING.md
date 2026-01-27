@@ -87,4 +87,4 @@ Contact us:
 
 ## Code of Conduct
 
-Be respectful, inclusive, and professional in all interactions.
+Be respectful, inclusive, and professional in all interactions and do not be afraid to ask questions!

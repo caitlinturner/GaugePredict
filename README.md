@@ -101,7 +101,7 @@ pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu12
 ## Documentation
 
 - [Full API Documentation](https://gaugepredict.readthedocs.io) (ReadTheDocs)
-- [Contributing Guide](CONTRIBUTING.md)
+- [Contributing Guide](.github/CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)
 
 ## License
@@ -133,3 +133,6 @@ We welcome contributions! Please:
 - Submit pull requests for bug fixes or new features
 - Contact: caitlin.r.r.turner@gmail.com
 
+## Funding Acknowledgments
+
+This work was supported by the US Department of Defense/Army Engineer Research and Development Center (ERDC) under Contract No. W912HZ2220005, the Gulf Research Program of the National Academies of Sciences, Engineering, and Medicine under award number SCON-10000883, and the NSF through Open Earthscape (Collaborative Research: Frameworks: OpenEarthscape - Transformative Cyberinfrastructure for Modeling and Simulation in the Earth-Surface Science Communities) award No. 2104102.
