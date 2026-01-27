@@ -1,37 +1,22 @@
 # Contributing to GaugePredict
 
-Thank you for your interest in contributing to GaugePredict! This document provides guidelines for contributing to the project.
+(Language adapted from https://passah2o.github.io/dorado/misc/contributing.html)
 
-## How to Contribute
+We welcome contributions to the GaugePredict package in the form of pull requests and issues made in the source repository.
 
-### Reporting Issues
-- Search existing issues before creating a new one
-- Provide a clear description of the problem
-- Include steps to reproduce the issue
-- Share your environment details (Python version, OS, package versions)
+## Issues
 
-### Suggesting Enhancements
-- Open an issue with the tag `enhancement`
-- Clearly describe the proposed feature
-- Explain the use case and benefits
+If you are having any problems using GaugePredict we suggest opening an issue. When you open an issue, please provide a clear description of what your scenario is, and what error message you are receiving. If possible, please include a minimal working example of some code that breaks, and the error output you receive.
 
-### Pull Requests
+If there is some functionality you would like to see added to GaugePredict you can also open an issue up to discuss that. This can be code you plan to write and contribute, or it can be something you would like to have available but are not comfortable coding yourself. Either way we are happy to help!
 
-1. **Fork the repository** and create a branch from `main`
-2. **Follow the code style**:
-   - Use 4 spaces for indentation
-   - Follow PEP 8 guidelines
-   - Add docstrings to all functions/classes
-3. **Write clear commit messages**:
-   - Use present tense ("Add feature" not "Added feature")
-   - Reference issues: `fix: resolve issue #123`
-4. **Update documentation** if needed
-5. **Ensure your code works**:
-   - Test locally before submitting
-   - Verify examples still run
-6. **Submit the pull request**:
-   - Describe what changes you made and why
-   - Link related issues
+## Pull Requests
+
+If you have a feature that you would like to propose be integrated into GaugePredict, then you should open a pull request. To create a pull request, we recommend first forking the repository, and then creating a separate branch to develop your feature (for reference see the [GitHub flow guide](https://guides.github.com/introduction/flow/) and this [Git branching guide](https://learngitbranching.js.org/)). Then you can commit and develop your feature in your branch. We ask that new features be accompanied by additional unit tests, to ensure that they operate as expected. For unit testing, we use `pytest`. When you are satisfied with the code you have developed, you can open a pull request to the "main" branch of the project repository. Please write a concise and descriptive title for the pull request, and provide a clear description of what the feature does and why you are proposing its addition to the project. Before developing any new code, you are more than welcome to open an issue first to discuss your proposed addition.
+
+## Code Style
+
+To ensure consistency within the codebase, we follow some standard Python conventions for our formatting. As much as possible we try to stick to the [PEP-8](https://peps.python.org/pep-0008/) standard for our code. For docstrings, we try to follow the [PEP-257](https://peps.python.org/pep-0257/) standard.
 
 ## Development Setup
 
@@ -47,37 +32,6 @@ conda activate gaugepredict-dev
 # Install in editable mode
 pip install -e ".[dev]"
 ```
-
-## Code Style
-
-- Follow PEP 8
-- Maximum line length: 100 characters
-- Use type hints where appropriate
-- Write descriptive variable names
-- Add comments for complex logic
-
-## Documentation
-
-- Update README.md for user-facing changes
-- Add docstrings following NumPy style:
-  ```python
-  def function_name(param1, param2):
-      """
-      Brief description.
-
-      **Inputs** :
-      
-      param1 : 'type'
-          Description of param1.
-      param2 : 'type'
-          Description of param2.
-
-      **Outputs** :
-      
-      name : 'type'
-          Description of return value.
-      """
-  ```
 
 ## Questions?
 

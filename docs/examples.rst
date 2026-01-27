@@ -27,14 +27,16 @@ Jupyter Notebooks
 
 Python Scripts
 --------------
-
+Example scripts for code functionality if notebooks arent your thing
+- **downloader_msr_basin.py**: Example data downloading script for Mississippi River Basin
 - **trainingcode_bonnet_carre_spillway.py**: Example training script for Bonnet Carré Spillway site
+- **figure_creating.py**: Examplefigure creation code 
 
 Data Files
 ----------
 
 - ``bcs_wl.csv``: Example water level data
-- ``cached_data_discharge/``: Cached discharge data
+- ``cached_data_discharge/``: Cached discharge data (Not included here, can be created in ``downloader_notebook.ipynb``)
 - ``results/``: Model outputs and predictions
 - ``shapefiles/``: HUC zone and basin shapefiles
 

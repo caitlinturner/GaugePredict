@@ -66,7 +66,8 @@ pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu12
 
 
 ## Workflow Assisted by Notebooks (located in examples)
-- **1) GaugePredict Data Downloader notebook (`downloader_notebook.ipynb`)**
+Also available as python scripts if notebooks aren't your thing (examples/scripts)
+- **1) GaugePredict Data Downloader notebook (`downloader_notebook.ipynb` or `downloader_msr_basin.py`)**
   - Builds basin-scale **predictor datasets** from USGS gauge records for GaugePredict.
   - Main steps:
     - Define a target gauge (what you want to predict) and analysis window.
@@ -77,7 +78,7 @@ pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu12
       - A site dictionary JSON with metadata.
     **This file must be created to run the other two notebooks as is. They can also be used as a guide for your own area**
 
-- **2) GaugePredict Training notebook (`training_notebook.ipynb`)**
+- **2) GaugePredict Training notebook (`training_notebook.ipynb` or `training_code_bonnet_carre_spillway.py`)**
   - Trains the **CNN–LSTM** GaugePredict model for a selected target site and variable using the cached predictor dataset.
   - Main steps:
     - Configure run metadata (run name, target, date window, horizons).
@@ -88,7 +89,7 @@ pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu12
       - Per-horizon predictions, metrics, and artifacts.
       - A compute summary JSON with hardware info, hyperparameters, runtimes, and skill scores for reporting.
 
-- **3) GaugePredict Figure Creating notebook (`figure_creating_notebook.ipynb`)**
+- **3) GaugePredict Figure Creating notebook (`figure_creating_notebook.ipynb` or `figure_creating.py`)**
   - Generates figures from saved run outputs.
   - Main figure workflows:
     - **Training + test performance figure**
