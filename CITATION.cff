@@ -16,7 +16,7 @@ authors:
     orcid: https://orcid.org/0000-0003-3680-2542
     affiliation: "Department of Oceanography and Coastal Sciences, College of the Coast and Environment, Louisiana State University; Coastal Studies Institute, Louisiana State University"
 title: "GaugePredict: Forecasting downstream gauge conditions using hybrid neural networks"
-version: 1.0.0
+version: 1.0.1
 date-released: 2026-01-27
 url: "https://github.com/caitlinturner/GaugePredict"
 repository-code: "https://github.com/caitlinturner/GaugePredict"

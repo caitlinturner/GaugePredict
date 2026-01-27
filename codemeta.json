@@ -75,7 +75,7 @@
     "matplotlib>=3.4.0",
     "requests>=2.26.0"
   ],
-  "version": "1.0.0",
+  "version": "1.0.1",
   "developmentStatus": "active",
   "downloadUrl": "https://pypi.org/project/GaugePredict/",
   "issueTracker": "https://github.com/caitlinturner/GaugePredict/issues",

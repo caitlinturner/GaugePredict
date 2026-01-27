@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "GaugePredict"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
     {name = "Caitlin R. R. Turner", email = "caitlin.r.r.turner@gmail.com"},
     {name = "Jo Martin"},

@@ -2,7 +2,7 @@
 GaugePredict - Forecasts downstream gauge conditions using hybrid neural network models
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __author__ = "Caitlin R. R. Turner"
 __email__ = "cturn65@lsu.edu"
 
