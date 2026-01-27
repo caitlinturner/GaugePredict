@@ -4,9 +4,10 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## An open-source package that forecasts downstream gauge conditions using a hybrid neural network.
 
+**Note:** An update to address the dependecies for the U.S. Geological Survey's switch from dataRetrival.NWIS to dataRetrival.waterdata will be completed in the coming weeks. All functions are working at this time.
 
-An open-source package that forecasts downstream gauge conditions using a hybrid neural network.
 
 ![HUC map overview](examples/figures/map_hucs.png)
 *Example of Hydrologic Unit Code (HUC) selection for a desired basin.*
@@ -24,9 +25,6 @@ An open-source package that forecasts downstream gauge conditions using a hybrid
 
 ![Bonnet Carré Spillway forecasts](examples/figures/bcs_forecasts1.png)
 *Forecast example for operational and non-operational flows for the Bonnet Carré Spillway site.*
-
-
-** An update to address the dependecies for the U.S. Geological Survey's switch from dataRetrival.NWIS to dataRetrival.waterdata will be updated in the coming weeks. All functions are working at this time.**
 
 
 ## Installation
@@ -66,7 +64,7 @@ pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu12
 
 
 ## Workflow Assisted by Notebooks (located in examples)
-Also available as python scripts if notebooks aren't your thing (examples/scripts)
+Also available as python scripts if notebooks aren't your thing (`examples/scripts`)
 - **1) GaugePredict Data Downloader notebook (`downloader_notebook.ipynb` or `downloader_msr_basin.py`)**
   - Builds basin-scale **predictor datasets** from USGS gauge records for GaugePredict.
   - Main steps:
@@ -76,6 +74,7 @@ Also available as python scripts if notebooks aren't your thing (examples/script
     - Save outputs for modeling:
       - Cached time series files per gauge.
       - A site dictionary JSON with metadata.
+        
     **This file must be created to run the other two notebooks as is. They can also be used as a guide for your own area**
 
 - **2) GaugePredict Training notebook (`training_notebook.ipynb` or `training_code_bonnet_carre_spillway.py`)**
