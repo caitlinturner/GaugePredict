@@ -4,7 +4,7 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
----
+
 
 An open-source package that forecasts downstream gauge conditions using a hybrid neural network model.
 
@@ -15,11 +15,6 @@ An open-source package that forecasts downstream gauge conditions using a hybrid
 - Supports continuity during data interruptions by using trained models to fill estimates when target-gauge observations are missing due to down gauges.
 - Can be applied to forecast diversion-related flows for water management decisions.
 - Comes with walkthrough notebooks that make dataset building, training, and figure generation easy to follow.
-
-
-We welcome contributions! Please email cturn65@lsu.edu or open an issue/pull request to get involved!
-
----
 
 ## Installation
 
@@ -55,7 +50,7 @@ pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu12
 - Scikit-learn, SHAP, Matplotlib
 - See `requirements.txt` for complete list
 
----
+
 
 ## Workflow Assisted by Notebooks (located in examples)
 - **1) GaugePredict Data Downloader notebook (`downloader_notebook.ipynb`)**
@@ -91,16 +86,35 @@ pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu12
       - Plots a map grid of predictor sites and SHAP-selected subsets by horizon, with a target-site marker.
 
 
----
+
 
 ## License
 This project is licensed under the MIT License
 
----
 
-## Citing GaugePredict (NOT PEER REVIEWED YET)
-If you use **GaugePredict** in your research, please cite the software and associated paper upon release.  
+## Citation
 
-**Citation:**
-coming soon
+If you use **GaugePredict** in your research, please cite both the software and the associated paper:
+
+### Software Citation
+```bibtex
+@software{turner2026gaugepredict,
+  author = {Turner, Caitlin R. R. and Martin, Jo and Hiatt, Matthew},
+  title = {{GaugePredict: Forecasting downstream gauge conditions using hybrid neural networks}},
+  year = {2026},
+  url = {https://github.com/caitlinturner/GaugePredict},
+  version = {1.0.0}
+}
+```
+
+### Paper Citation
+ Coming soon!
+
+
+## Contributing
+
+We welcome contributions! Please:
+- Open an issue to discuss proposed changes
+- Submit pull requests for bug fixes or new features
+- Contact: caitlin.r.r.turner@gmail.com
 
