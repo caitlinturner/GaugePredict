@@ -32,19 +32,37 @@ Start by downloading discharge data for a USGS gauge site:
 Training a Forecast Model
 --------------------------
 
-Train a neural network model to forecast discharge:
+Train a neural network model to forecast discharge. ``run_horizon`` expects
+preprocessed predictor files (see the downloader notebook) plus a small
+hyperparameter dictionary:
 
 .. code-block:: python
 
+    import torch.nn as nn
     from GaugePredict.predict import run_horizon
     
-    # Train for 7-day ahead forecast
+    hp = {
+        "sequence_length": 30,
+        "cutoff_date": "2023-01-01",
+        "batch_size": 32,
+        "epochs": 50,
+        "learning_rate": 1e-3,
+        "weight_decay": 1e-4,
+        "loss_function": nn.MSELoss(),
+        "max_grad_norm": 1.0,
+    }
+
     results = run_horizon(
+        forecast_horizon=7,
+        data_files="path/to/predictor/files",  # directory or file bundle produced by downloader
+        use_csv_target=False,
         target_site="07374000",
-        horizon=7,
-        sequence_length=30,  # Use 30 days of history
-        epochs=50,
-        batch_size=32
+        target_parameter_code="00060",
+        start_date="2020-01-01",
+        end_date="2023-12-31",
+        tz="UTC",
+        hp=hp,
+        device="cuda"  # or "cpu"
     )
     
     print(f"Model Performance: R² = {results['metrics']['r2']}")
