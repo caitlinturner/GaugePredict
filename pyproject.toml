@@ -6,7 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "GaugePredict"
 version = "1.0.0"
 authors = [
-    {name = "Caitlin R. R. Turner", email = "cturn65@lsu.edu"},
+    {name = "Caitlin R. R. Turner", email = "caitlin.r.r.turner@gmail.com"},
+    {name = "Jo Martin"},
+    {name = "Matthew Hiatt", email = "mhiat1@lsu.edu"},
 ]
 description = "An open-source package that forecasts downstream gauge conditions using a hybrid neural network model"
 readme = "README.md"

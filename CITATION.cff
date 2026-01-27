@@ -3,8 +3,18 @@ message: "If you use this software, please cite it as below."
 authors:
   - family-names: Turner
     given-names: Caitlin R. R.
-    email: cturn65@lsu.edu
-    orcid: https://orcid.org/0000-0000-0000-0000
+    email: caitlin.r.r.turner@gmail.com
+    orcid: https://orcid.org/0000-0001-8305-161X
+    affiliation: "Department of Oceanography and Coastal Sciences, College of the Coast and Environment, Louisiana State University; Coastal Studies Institute, Louisiana State University"
+  - family-names: Martin
+    given-names: Jo
+    orcid: https://orcid.org/0009-0009-0179-6964
+    affiliation: "Department of Geological Sciences, University of Colorado Boulder"
+  - family-names: Hiatt
+    given-names: Matthew
+    email: mhiat1@lsu.edu
+    orcid: https://orcid.org/0000-0003-3680-2542
+    affiliation: "Department of Oceanography and Coastal Sciences, College of the Coast and Environment, Louisiana State University; Coastal Studies Institute, Louisiana State University"
 title: "GaugePredict: Forecasting downstream gauge conditions using hybrid neural networks"
 version: 1.0.0
 date-released: 2026-01-27

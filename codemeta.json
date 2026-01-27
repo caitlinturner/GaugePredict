@@ -9,8 +9,33 @@
       "@type": "Person",
       "givenName": "Caitlin R. R.",
       "familyName": "Turner",
-      "email": "cturn65@lsu.edu",
-      "@id": "https://orcid.org/0000-0000-0000-0000"
+      "email": "caitlin.r.r.turner@gmail.com",
+      "@id": "https://orcid.org/0000-0001-8305-161X",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Louisiana State University"
+      }
+    },
+    {
+      "@type": "Person",
+      "givenName": "Jo",
+      "familyName": "Martin",
+      "@id": "https://orcid.org/0009-0009-0179-6964",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "University of Colorado Boulder"
+      }
+    },
+    {
+      "@type": "Person",
+      "givenName": "Matthew",
+      "familyName": "Hiatt",
+      "email": "mhiat1@lsu.edu",
+      "@id": "https://orcid.org/0000-0003-3680-2542",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Louisiana State University"
+      }
     }
   ],
   "citation": "https://github.com/caitlinturner/GaugePredict",
