@@ -12,6 +12,7 @@
 ![HUC map overview](examples/figures/map_hucs.png)
 *Example of Hydrologic Unit Code (HUC) selection for a desired basin.*
 
+## GaugePredict Features
 - Creates extended-range forecasts of downstream gauge conditions (e.g., water level, discharge) from daily to multi-week horizons (1–30 days tested).
 - Ingests and preprocesses basin-wide U.S. Geological Survey gauge data by automatically downloading, aligning, and cleaning multi-site time series defined by user-selected HUC regions.
   - Synchronizes all sites to a continuous daily index and fills missing days so datasets are sequence-model ready.
