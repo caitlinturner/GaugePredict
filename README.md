@@ -98,6 +98,14 @@ Also available as python scripts if notebooks aren't your thing (`examples/scrip
       - Reads SHAP artifacts from the SHAP results folder.
       - Plots a map grid of predictor sites and SHAP-selected subsets by horizon, with a target-site marker.
 
+- **4) Missing Data Analysis notebook (`br_gauge_missingdata_figures_notebook.ipynb` or `br_gauge_missingdata_figures.py`)**
+  - Demonstrates forecasting during gauge outages and missing observations.
+  - Main steps:
+    - Compare GaugePredict forecasts against USGS observations and calculated discharge.
+    - Illustrate how upstream predictor gauges enable discharge inference when target gauge is downed.
+    - Validate forecast accuracy as a missing data proxy.
+    - Visualize multi-horizon forecast performance during observational gaps.
+
 ## Documentation
 
 - [Full API Documentation](https://gaugepredict.readthedocs.io) (ReadTheDocs)

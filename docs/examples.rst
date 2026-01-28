@@ -12,43 +12,30 @@ Interactive notebooks with detailed explanations and visualizations:
 Data Downloader (``downloader_notebook.ipynb``)
 --------------------------------------------------
 
-Learn how to download and prepare USGS gauge data:
-
-- Download time series from multiple USGS gauge sites
-- Define target gauges and analysis time windows
-- Preprocess data and handle missing values
-- Cache processed data for faster access in training
-- Organize data by hydrological unit code (HUC)
+Automatically download and prepare USGS gauge data for modeling.
 
 Training Notebook (``training_notebook.ipynb``)
 --------------------------------------------------
 
-Build and train neural network forecasting models:
-
-- Configure CNN-LSTM model architectures
-- Set hyperparameters for different forecast horizons (1-30 days)
-- Train models on historical discharge data
-- Evaluate performance using hydrological metrics (NSE, R², RMSE)
-- Generate predictions for validation periods
-- Save trained models for deployment
+Train CNN-LSTM models on prepared gauge data with configurable horizons and hyperparameters.
 
 Figure Creation (``figure_creating_notebook.ipynb``)
 ------------------------------------------------------
 
-Visualize and interpret model results:
+Generate publication-ready visualizations and interpretability plots from trained models.
 
-- Load trained model outputs and predictions
-- Create performance comparison plots
-- Generate forecast accuracy visualizations
-- Produce SHAP feature importance analysis
-- Create site selection maps for predictor gauges
-- Export figures for reports and publications
+Baton Rouge Missing Data Analysis (``br_gauge_missingdata_figures_notebook.ipynb``)
+--------------------------------------------------------------------------------------
+
+Demonstrates model capability for filling observational gaps during gauge downtime:
+
+- Compare GaugePredict forecasts against measured USGS observations
+- Use USGS calculated discharge as reference during missing periods
+- Illustrate how upstream predictors enable discharge inference when target gauge is downed
 
 
 Python Scripts
 ==============
-
-Standalone Python scripts demonstrating specific workflows:
 
 ``downloader_msr_basin.py``
     Download and preprocess discharge data for the Mississippi River Basin
@@ -58,6 +45,9 @@ Standalone Python scripts demonstrating specific workflows:
 
 ``figure_creating.py``
     Generate visualizations from trained model outputs
+
+``br_gauge_missingdata_figures.py``
+    Generate forecast comparison figures for missing data scenarios (e.g., downed gauges)
 
 Data & Resources
 ================
