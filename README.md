@@ -6,12 +6,6 @@
 
 ## An open-source python package for forecasting downstream gauge conditions using a hybrid neural network.
 
-**Note:** An update to address the dependecies for the U.S. Geological Survey's switch from dataRetrival.NWIS to dataRetrival.waterdata will be completed in the coming weeks. All functions are working at this time.
-
-
-![HUC map overview](examples/figures/map_hucs.png)
-*Example of Hydrologic Unit Code (HUC) selection for a desired basin.*
-
 ## GaugePredict Features
 - Creates extended-range forecasts of downstream gauge conditions (e.g., water level, discharge) from daily to multi-week horizons (1–30 days tested).
 - Ingests and preprocesses basin-wide U.S. Geological Survey gauge data by automatically downloading, aligning, and cleaning multi-site time series defined by user-selected HUC regions.
@@ -20,6 +14,11 @@
 - Supports continuity during data interruptions by using trained models to fill estimates when target-gauge observations are missing due to down gauges.
 - Can be applied to forecast flows for water management decisions.
 - Comes with walkthrough notebooks that make dataset building, training, and figure generation easy to follow.
+  
+**Note:** An update to address the dependecies for the U.S. Geological Survey's switch from dataRetrival.NWIS to dataRetrival.waterdata will be completed in the coming weeks. All functions are working at this time.
+
+![HUC map overview](examples/figures/map_hucs.png)
+*Example of Hydrologic Unit Code (HUC) selection for a desired basin.*
 
 ![Baton Rouge missing data example](examples/figures/BR_missing.png)
 *Example of filling in missing data for the Mississippi River at Baton Rouge using trained GaugePredict estimates (data source: USGS).*
