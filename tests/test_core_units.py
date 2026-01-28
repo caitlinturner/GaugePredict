@@ -71,7 +71,7 @@ def test_get_allowed_sites_for_horizon_reads_topn(tmp_path: Path):
     allowed = get_allowed_sites_for_horizon(
         h,
         site_selection_mode="from_shap",
-        full_shap_root=shap_root,
+        shap_root=shap_root,
         n_shap_by_h={1: 2},
         default_n_shap=999,
     )

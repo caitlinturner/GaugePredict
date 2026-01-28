@@ -1,0 +1,75 @@
+<ul>
+<li>name: Caitlin R. R. Turner
+    orcid: "0000-0000-0000-0000"  # replace with real ORCID
+    affiliation: 1</li>
+<li>name: Jo Martin
+    orcid: "0000-0000-0000-0000"  # replace with real ORCID
+    affiliation: 1</li>
+<li>name: Matthew Hiatt
+    orcid: "0000-0000-0000-0000"  # replace with real ORCID
+    affiliation: 1
+affiliations:</li>
+<li>name: Louisiana State University
+    index: 1
+date: 2026-01-27
+bibliography: paper.bib</li>
+</ul>
+<hr />
+<h1 id="summary">Summary</h1>
+<p>GaugePredict is an open-source Python package for forecasting downstream gauge conditions using hybrid convolutional and recurrent neural networks. It ingests basin-wide U.S. Geological Survey (USGS) National Water Information System (NWIS) time series, automatically aligns multi-site predictors, and produces 1–30 day forecasts for discharge or water level. The package emphasizes reproducibility and explainability through SHAP-based feature selection, GPU-enabled training, and complete workflow notebooks spanning data acquisition, model training, and visualization. GaugePredict lowers the barrier for hydrologists and water managers to deploy data-driven forecasts across large watersheds.</p>
+<h1 id="statement-of-need">Statement of Need</h1>
+<p>River-basin managers often require short-to-medium range forecasts (days to weeks) for operational decisions such as spillway operations, navigation planning, and flood preparedness. Many watersheds lack dense sensor coverage or consistent data quality, and existing statistical approaches struggle with nonstationary hydrologic patterns. GaugePredict addresses this gap by providing:</p>
+<ul>
+<li>An end-to-end, documented workflow from USGS data retrieval through model training and evaluation.</li>
+<li>Hybrid CNN-LSTM architectures tailored for multivariate hydrological time series.</li>
+<li>Explainability via SHAP, enabling transparent site selection and model interpretation.</li>
+<li>Turnkey examples and configuration for basin-scale applications (e.g., Mississippi River Basin) that can be adapted to other regions.</li>
+</ul>
+<h1 id="software-description">Software Description</h1>
+<h2 id="functionality">Functionality</h2>
+<p>GaugePredict offers:</p>
+<ul>
+<li><strong>Data ingestion</strong>: Automated download of USGS NWIS daily values, alignment across multiple predictor gauges, handling of missing data, and optional ingestion of user-provided target CSVs [usgsnwis].</li>
+<li><strong>Modeling</strong>: CNN-LSTM architecture implemented in PyTorch for 1–30 day horizons, with standardized preprocessing and train/test splits [paszke2019pytorch].</li>
+<li><strong>Explainability</strong>: SHAP-based feature importance to rank predictor gauges and enable reduced, interpretable models [lundberg2017shap].</li>
+<li><strong>Visualization</strong>: Plotting utilities for training curves, forecast time series, SHAP summaries, and geospatial context.</li>
+<li><strong>Reproducibility</strong>: Configuration-driven runs, mock-import support for documentation builds, and example notebooks for full workflows.</li>
+</ul>
+<h2 id="architecture">Architecture</h2>
+<p>The package centers on <code>GaugeDataModel</code>, which prepares aligned predictor/target arrays, constructs sliding-window sequences, and standardizes inputs. Models are trained via a <code>Trainer</code> wrapper that logs metrics (R², NSE, Willmott) and saves artifacts (weights, scalers, SHAP outputs). Utilities in <code>routines</code> and <code>plotting</code> handle common I/O, geospatial boundaries, and evaluation visualizations. The codebase targets Python 3.8+ with optional GPU acceleration.</p>
+<h1 id="quality-control">Quality Control</h1>
+<ul>
+<li>Unit tests cover core data handling and model utilities (expand as needed for end-to-end cases).</li>
+<li>Example notebooks demonstrate complete runs on provided sample data.</li>
+<li>Documentation (ReadTheDocs) describes installation, API usage, and troubleshooting.</li>
+</ul>
+<h1 id="example-usage">Example Usage</h1>
+<p>A minimal 7-day forecast workflow:</p>
+<pre><code class="language-python">from GaugePredict.predict import run_horizon
+
+results = run_horizon(
+    forecast_horizon=7,
+    data_files=&quot;path/to/predictor/files&quot;,
+    use_csv_target=False,
+    target_site=&quot;07374000&quot;,
+    target_parameter_code=&quot;00060&quot;,
+    start_date=&quot;2020-01-01&quot;,
+    end_date=&quot;2023-12-31&quot;,
+    tz=&quot;UTC&quot;,
+    hp={&quot;epochs&quot;: 50, &quot;batch_size&quot;: 32, &quot;sequence_length&quot;: 30},
+    device=&quot;cuda&quot;  # or &quot;cpu&quot;
+)
+
+print(results[&quot;metrics&quot;], results[&quot;model_path&quot;])
+</code></pre>
+<h1 id="impact-and-reuse">Impact and Reuse</h1>
+<p>GaugePredict is suitable for:</p>
+<ul>
+<li>Short-to-medium range discharge and water-level forecasting across large basins.</li>
+<li>Sensitivity analysis of predictor networks using SHAP to identify informative gauges.</li>
+<li>Rapid what-if experiments by swapping predictor sets or horizons without rewriting pipelines.</li>
+</ul>
+<p>The software is licensed under MIT and available at https://github.com/caitlinturner/GaugePredict [turner2026gaugepredict].</p>
+<h1 id="acknowledgements">Acknowledgements</h1>
+<p>This work was developed by Caitlin R. R. Turner, Jo Martin, and Matthew Hiatt. Funding and data-provider acknowledgements can be added here (e.g., USGS, institutional grants). We thank contributors and users who provided feedback on early versions.</p>
+<h1 id="references">References</h1>

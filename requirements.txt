@@ -8,3 +8,6 @@ shap>=0.40.0
 psutil>=5.8.0
 matplotlib>=3.4.0
 requests>=2.26.0
+dataretrieval>=1.1.0
+contextily>=1.3.0
+cmocean>=3.0.0
