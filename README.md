@@ -21,10 +21,10 @@
 - Comes with walkthrough notebooks that make dataset building, training, and figure generation easy to follow.
 
 ![Baton Rouge missing data example](examples/figures/BR_missing.png)
-*Example handling of missing Baton Rouge observations using trained GaugePredict estimates.*
+*Example of filling in missing data for the Mississippi River at Baton Rouge using trained GaugePredict estimates (data source: USGS).*
 
-![Bonnet Carré Spillway forecasts](examples/figures/bcs_forecasts1.png)
-*Forecast example for operational and non-operational flows for the Bonnet Carré Spillway site.*
+![Bonnet Carré Spillway forecasts](examples/figures/training_tests_bcs.png)
+*GaugePredict training and test results for water level forecasts for the Mississippi River at the Bonnet Carré Spillway gauge site (data source: USACE).*
 
 
 ## Installation
@@ -102,9 +102,8 @@ Also available as python scripts if notebooks aren't your thing (`examples/scrip
   - Demonstrates forecasting during gauge outages and missing observations.
   - Main steps:
     - Compare GaugePredict forecasts against USGS observations and calculated discharge.
-    - Illustrate how upstream predictor gauges enable discharge inference when target gauge is downed.
-    - Validate forecast accuracy as a missing data proxy.
-    - Visualize multi-horizon forecast performance during observational gaps.
+    - Illustrate how upstream predictor gauges enable discharge inference when target gauge is down.
+    - Visualize forecast performance during observational gaps.
 
 ## Documentation
 
