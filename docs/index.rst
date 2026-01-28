@@ -34,6 +34,7 @@ to other basins, other USGS parameters, and user-defined target-site datasets.
    :maxdepth: 2
    :caption: Documentation
 
+   background
    api
    examples
 
