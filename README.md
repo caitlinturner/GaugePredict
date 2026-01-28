@@ -23,7 +23,7 @@
 ![Baton Rouge missing data example](examples/figures/BR_missing.png)
 *Example of filling in missing data for the Mississippi River at Baton Rouge using trained GaugePredict estimates (data source: USGS).*
 
-![Bonnet Carré Spillway forecasts](examples/figures/training_tests_bcs.png)
+![Bonnet Carré Spillway forecasts](examples/figures/training_test_bcs.png)
 *GaugePredict training and test results for water level forecasts for the Mississippi River at the Bonnet Carré Spillway gauge site (data source: USACE).*
 
 
