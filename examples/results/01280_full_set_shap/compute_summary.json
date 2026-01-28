@@ -1,0 +1,72 @@
+{
+  "run_timestamp": "2026-01-21T08:05:00.855221Z",
+  "run_name": "final_br_full_set",
+  "target_site": "07374000",
+  "target_variable": "discharge",
+  "target_parameter_code": "00060",
+  "target_units": "metric",
+  "predictor_type": "discharge",
+  "start_date": "2005-01-01",
+  "end_date": "2024-12-31",
+  "tz": "UTC",
+  "horizons": [
+    10
+  ],
+  "site_selection_mode": "from_shap",
+  "shap_mode": "none",
+  "use_custom_n_shap": true,
+  "paths": {
+    "examples_dir": "C:\\Users\\cturn\\Dev\\GaugePredict\\examples",
+    "project_root": "C:\\Users\\cturn\\Dev\\GaugePredict",
+    "results_root": "C:\\Users\\cturn\\Dev\\GaugePredict\\examples\\results\\07374000_final_br_full_set",
+    "predictor_json_root": "C:\\Users\\cturn\\Dev\\GaugePredict\\examples\\cached_data_discharge",
+    "predictor_json_path": "C:\\Users\\cturn\\Dev\\GaugePredict\\examples\\cached_data_discharge\\site_dict_discharge.json",
+    "full_shap_root": "C:\\Users\\cturn\\Dev\\GaugePredict\\examples\\results\\01280_test_final",
+    "use_csv_target": false,
+    "target_csv_path": null,
+    "target_csv_date_col": null,
+    "target_csv_value_col": null
+  },
+  "hardware": {
+    "device": "cuda",
+    "system": "Windows",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 165 Stepping 2, GenuineIntel",
+    "python_version": "3.11.14",
+    "torch_version": "2.5.1",
+    "cpu_count": 16,
+    "ram_gb": 31.766292572021484,
+    "gpu_name": "NVIDIA GeForce RTX 2070 Super",
+    "gpu_count": 1,
+    "gpu_memory_total_gb": 7.99969482421875
+  },
+  "runs": {
+    "10": {
+      "forecast_horizon": 10,
+      "n_parameters": 641281,
+      "train_time_sec": 32.12572690000525,
+      "eval_time_sec": 0.06327990000136197,
+      "metrics": {
+        "r2": 0.9178134799003601,
+        "nse": 0.9178134866461285,
+        "willmott": 0.9789835338263414
+      },
+      "hyperparameters": {
+        "sequence_length": 6,
+        "learning_rate": 2.9e-06,
+        "weight_decay": 0.07,
+        "max_grad_norm": 3.25,
+        "dropout_cnn": 0.0,
+        "dropout_lstm": 0.25,
+        "dropout_fc": 0.35,
+        "epochs": 100,
+        "batch_size": 128,
+        "background_size": 32,
+        "nsamples": 128,
+        "cutoff_date": "2020-01-01",
+        "loss_function": "SmoothL1Loss()",
+        "rolling_window": 1
+      }
+    }
+  }
+}

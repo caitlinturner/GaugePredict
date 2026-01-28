@@ -23,8 +23,8 @@ from GaugePredict.plotting import (
 # training/test figure
 # --------------------------------------------------------
 target_site = "01280"
-run_name = "function_test"
-target_variable = "discharge"
+run_name = "notebook"
+target_variable = "water_level"
 horizons = [1, 3]
 site_label = "Bonnet Carré Spillway (USACE)"
 save_fig = True
@@ -57,7 +57,8 @@ fig1, ax1 = plot_training_and_timeseries(
 
 if save_fig:
     results_root.mkdir(parents=True, exist_ok=True)
-    fig1.savefig(fig_path, dpi=200, bbox_inches="tight")
+    fig1.savefig(fig_path, dpi=600, bbox_inches="tight")
+    print("Saved:", fig_path)
 
 plt.show()
 
@@ -70,24 +71,18 @@ print(scores_df.round(3))
 # SHAP figure 
 # --------------------------------------------------------
 target_site = "01280"
-shap_run_name = f"{target_site}_test_final"
+shap_run_name = "01280_full_set_shap"
 
 project_root = get_project_root(__file__, levels_up=1)
 examples_dir = resolve_under_project(project_root, Path("examples"))
-results_dir = examples_dir / "results"
-full_shap_root = results_dir / shap_run_name
+results_base_dir = examples_dir / "results"
+full_shap_root = results_base_dir / shap_run_name
 
 horizons = [1, 3]
 
-# currently hardcoded from downsampled model
 n_shap_by_h = {
     1: 5,
     3: 9,
-    5: 15,
-    10: 50,
-    15: 90,
-    20: 90,
-    30: 120,
 }
 
 states_fp = examples_dir / "shapefiles" / "US_STATES" / "tl_2023_us_state.shp"

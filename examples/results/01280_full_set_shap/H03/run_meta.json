@@ -1,0 +1,31 @@
+{
+  "target_site": "01280",
+  "start_date": "2005-01-01",
+  "end_date": "2024-12-31",
+  "tz": "UTC",
+  "forecast_horizon": 3,
+  "parameter": "water_level",
+  "parameter_code": "30210",
+  "n_parameters": 4260481,
+  "train_time_sec": 7229.368448999943,
+  "eval_time_sec": 7.479189499979839,
+  "inference_time_per_sample_ms": 4.098186027386213,
+  "dataset_sizes": {
+    "n_train": 5358,
+    "n_test": 1825
+  },
+  "hyperparameters": {
+    "sequence_length": 120,
+    "cutoff_date": "2020-01-01",
+    "epochs": 100,
+    "batch_size": 128,
+    "learning_rate": 0.0001,
+    "weight_decay": 0.001,
+    "max_grad_norm": 1.0,
+    "background_size": 32,
+    "nsamples": 128,
+    "dropout_cnn": 0.02,
+    "dropout_lstm": 0.2,
+    "dropout_fc": 0.35
+  }
+}

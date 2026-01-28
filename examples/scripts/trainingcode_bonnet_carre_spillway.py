@@ -28,7 +28,7 @@ from GaugePredict.routines import get_project_root, resolve_under_project
 # --------------------------------------------------------
 # Configuration
 # --------------------------------------------------------
-run_name = "function_test"
+run_name = "notebook"
 
 site_selection_mode = "from_shap"  # "all" or "from_shap"
 shap_mode = "none"  # "none" or "run"
@@ -44,7 +44,7 @@ predictor_type = "discharge"
 predictor_json_root = examples_dir / f"cached_data_{predictor_type}"
 
 results_dir = examples_dir / "results"
-full_shap_root = results_dir / f"{target_site}_function_test_full"
+full_shap_root = examples_dir / "results" / "01280_full_set_shap"
 
 use_csv_target = True
 csv_path = examples_dir / "data" / "bcs_wl.csv"
@@ -61,11 +61,11 @@ default_n_shap = 1950
 n_shap_by_h = {
     1: 5,
     3: 9,
-    5: 15,
+    5: 45,
     10: 50,
-    15: 90,
-    20: 90,
-    30: 120,
+    15: 65,
+    20: 75,
+    30: 100,
 }
 
 hp_defaults = dict(
@@ -76,47 +76,23 @@ hp_defaults = dict(
     dropout_cnn=0.00,
     dropout_lstm=0.20,
     dropout_fc=0.0,
-    epochs=25, # Run longer for horizons > 5 (I suggest 100 epochs)
+    epochs=50,
     batch_size=128,
     background_size=32,
     nsamples=128,
     cutoff_date=np.datetime64("2020-01-01"),
-    loss_function=None,
+    loss_function=torch.nn.MSELoss(),
 )
 
 hp_by_h = {
-    1: dict(sequence_length=3, learning_rate=3.0e-4, 
-            dropout_cnn=0.00, dropout_lstm=0.00, dropout_fc=0.00,
-            weight_decay=5.0e-4, max_grad_norm=1),
-    
-    3: dict(sequence_length=4, learning_rate=5.0e-5, 
-            dropout_cnn=0.00, dropout_lstm=0.00, dropout_fc=0.00,
-            weight_decay=3.0e-4, max_grad_norm=1.25),
-    
-    5: dict(sequence_length=5, learning_rate=3.5e-6, 
-            dropout_cnn=0.00, dropout_lstm=0.225, dropout_fc=0.15,
-            weight_decay=5.0e-3, max_grad_norm=2.5),
-    
-    10: dict(sequence_length=6, learning_rate=4.75e-6, 
-             dropout_cnn=0.0, dropout_lstm=0.25, dropout_fc=0.30,
-             weight_decay=1.0e-2, max_grad_norm=3.25),
-
-    15: dict(sequence_length=10, learning_rate=1.85e-6, 
-             dropout_cnn=0.0, dropout_lstm=0.05, dropout_fc=0.375,
-             weight_decay=2.5e-2, max_grad_norm=3.5),
-    
-    20: dict(sequence_length=12, learning_rate=9.5e-7,
-             dropout_cnn=0.00, dropout_lstm=0.05, dropout_fc=0.35,
-             weight_decay=1.0e-2, max_grad_norm=2.75),
-
-    30: dict(sequence_length=30, learning_rate=7.7e-7,
-             dropout_cnn=0.00, dropout_lstm=0.00, dropout_fc=0.35,
-             weight_decay=5.25e-2, max_grad_norm=3.75),
+    1: dict(sequence_length=3, learning_rate=1.5e-5, dropout_cnn=0.02, dropout_lstm=0.0),
+    3: dict(sequence_length=4, learning_rate=9.5e-6, dropout_cnn=0.02, dropout_lstm=0.0),
+    5: dict(sequence_length=4, learning_rate=7.0e-6, dropout_cnn=0.04, dropout_lstm=0.06),
+    10: dict(sequence_length=5, learning_rate=5.0e-6, dropout_cnn=0.5, dropout_lstm=0.08),
+    15: dict(sequence_length=5, learning_rate=2.5e-6, dropout_cnn=0.5, dropout_lstm=0.00),
+    20: dict(sequence_length=7, learning_rate=0.95e-6, dropout_cnn=0.1, dropout_lstm=0.15, dropout_fc=0.1),
+    30: dict(sequence_length=7, learning_rate=0.675e-6, dropout_cnn=0.1, dropout_lstm=0.125, dropout_fc=0.01),
 }
-
-# Set loss function now that torch is available
-if TORCH_AVAILABLE:
-    hp_defaults["loss_function"] = torch.nn.MSELoss()
 
 
 
@@ -133,6 +109,8 @@ full_shap_root = resolve_under_project(project_root, full_shap_root)
 
 if use_csv_target:
     csv_path = resolve_under_project(project_root, csv_path)
+    if not csv_path.exists():
+        raise FileNotFoundError(f"Target CSV not found: {csv_path}")
 else:
     csv_path = None
 
@@ -140,9 +118,6 @@ json_path = predictor_json_root / f"site_dict_{predictor_type}.json"
 
 if not json_path.exists():
     raise FileNotFoundError(f"Predictor JSON not found: {json_path}")
-
-if use_csv_target and (csv_path is None or not csv_path.exists()):
-    raise FileNotFoundError(f"Target CSV not found: {csv_path}")
 
 data_files = [{"path": json_path, "data_key": "parameter"}]
 
@@ -179,7 +154,6 @@ compute_summary = {
         "target_csv_date_col": csv_date_col if use_csv_target else None,
         "target_csv_value_col": csv_value_col if use_csv_target else None,
     },
-    "hardware": hardware_info,
     "runs": {},
 }
 
@@ -199,7 +173,7 @@ for fh in horizons:
     allowed_sites = get_allowed_sites_for_horizon(
         fh,
         site_selection_mode=site_selection_mode,
-        full_shap_root=full_shap_root,
+        shap_root=full_shap_root,
         n_shap_by_h=n_shap_by_h,
         default_n_shap=default_n_shap,
     )

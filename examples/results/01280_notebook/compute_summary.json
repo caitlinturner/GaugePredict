@@ -1,0 +1,84 @@
+{
+  "run_timestamp": "2026-01-28T05:18:01.169850Z",
+  "run_name": "notebook",
+  "target_site": "01280",
+  "target_variable": "water_level",
+  "target_parameter_code": "30210",
+  "target_units": "metric",
+  "predictor_type": "discharge",
+  "start_date": "2005-01-01",
+  "end_date": "2024-12-31",
+  "tz": "UTC",
+  "horizons": [
+    1,
+    3
+  ],
+  "site_selection_mode": "from_shap",
+  "shap_mode": "none",
+  "paths": {
+    "examples_dir": "C:\\Users\\cturn\\Dev\\From_VS\\GaugePredict\\examples",
+    "project_root": "C:\\Users\\cturn\\Dev\\From_VS\\GaugePredict",
+    "results_root": "C:\\Users\\cturn\\Dev\\From_VS\\GaugePredict\\examples\\results\\01280_notebook",
+    "predictor_json_root": "C:\\Users\\cturn\\Dev\\From_VS\\GaugePredict\\examples\\cached_data_discharge",
+    "predictor_json_path": "C:\\Users\\cturn\\Dev\\From_VS\\GaugePredict\\examples\\cached_data_discharge\\site_dict_discharge.json",
+    "full_shap_root": "C:\\Users\\cturn\\Dev\\From_VS\\GaugePredict\\examples\\results\\01280_full_set_shap",
+    "use_csv_target": true,
+    "target_csv_path": "C:\\Users\\cturn\\Dev\\From_VS\\GaugePredict\\examples\\data\\bcs_wl.csv",
+    "target_csv_date_col": "date",
+    "target_csv_value_col": "wl"
+  },
+  "runs": {
+    "1": {
+      "forecast_horizon": 1,
+      "n_parameters": 574081,
+      "train_time_sec": 17.547438499997952,
+      "eval_time_sec": 0.055437099988921545,
+      "metrics": {
+        "r2": 0.9931589961051941,
+        "nse": 0.9931589986236486,
+        "willmott": 0.9983261853442745
+      },
+      "hyperparameters": {
+        "sequence_length": 3,
+        "learning_rate": 1.5e-05,
+        "weight_decay": 0.001,
+        "max_grad_norm": 1.0,
+        "dropout_cnn": 0.02,
+        "dropout_lstm": 0.0,
+        "dropout_fc": 0.0,
+        "epochs": 50,
+        "batch_size": 128,
+        "background_size": 32,
+        "nsamples": 128,
+        "cutoff_date": "2020-01-01",
+        "loss_function": "MSELoss()"
+      }
+    },
+    "3": {
+      "forecast_horizon": 3,
+      "n_parameters": 581761,
+      "train_time_sec": 17.57377919999999,
+      "eval_time_sec": 0.055140800002845936,
+      "metrics": {
+        "r2": 0.9841733574867249,
+        "nse": 0.98417335319612,
+        "willmott": 0.9960094480861903
+      },
+      "hyperparameters": {
+        "sequence_length": 4,
+        "learning_rate": 9.5e-06,
+        "weight_decay": 0.001,
+        "max_grad_norm": 1.0,
+        "dropout_cnn": 0.02,
+        "dropout_lstm": 0.0,
+        "dropout_fc": 0.0,
+        "epochs": 50,
+        "batch_size": 128,
+        "background_size": 32,
+        "nsamples": 128,
+        "cutoff_date": "2020-01-01",
+        "loss_function": "MSELoss()"
+      }
+    }
+  }
+}

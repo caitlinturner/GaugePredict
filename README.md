@@ -75,7 +75,7 @@ Also available as python scripts if notebooks aren't your thing (`examples/scrip
       - Cached time series files per gauge.
       - A site dictionary JSON with metadata.
         
-    **This file must be created to run the other two notebooks as is. They can also be used as a guide for your own area**
+    The data downloaded in this notebook takes time to gather, here is a temporary link for the dataset for this notebook. It should go in examples\cached_data_discharge. A permalink will be provided upon paper publication (https://lsu.box.com/s/42bq766uiu2jmqo8hhdot0gb9dfkm93q)
 
 - **2) GaugePredict Training notebook (`training_notebook.ipynb` or `training_code_bonnet_carre_spillway.py`)**
   - Trains the **CNN–LSTM** GaugePredict model for a selected target site and variable using the cached predictor dataset.
